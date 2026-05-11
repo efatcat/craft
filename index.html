@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>2D Крафт - Майнкрафт стиль</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: #1a2a32;
+            overflow: hidden;
+            font-family: 'Minecraft Rus', 'Minecraft', 'Courier New', monospace;
+            touch-action: none; /* Улучшение для сенсорных экранов */
+        }
+
+        /* Загрузка шрифта Minecraft Rus */
+        @font-face {
+            font-family: 'Minecraft Rus';
+            src: url('Minecraft Rus.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #6b8c9e;
+            cursor: crosshair;
+        }
+
+        /* Панель инвентаря и информации */
+        .ui-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+            border: 2px solid #8b8b8b;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            font-family: 'Minecraft Rus', monospace;
+            pointer-events: auto;
+        }
+
+        .hotbar {
+            display: flex;
+            gap: 8px;
+            background: #2c2c2c;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 2px solid #6b6b6b;
+        }
+
+        .slot {
+            width: 64px;
+            height: 64px;
+            background: #3a3a3a;
+            border: 3px solid #5a5a5a;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.1s linear;
+            position: relative;
+        }
+
+        .slot.selected {
+            border: 3px solid #ffcc44;
+            background: #4e4e4e;
+            box-shadow: 0 0 0 2px #ffaa33;
+            transform: scale(1.02);
+        }
+
+        .slot img {
+            width: 48px;
+            height: 48px;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+
+        .slot span {
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 0 black;
+            margin-top: 2px;
+        }
+
+        .info {
+            background: #1f1f1fe6;
+            padding: 8px 18px;
+            border-radius: 40px;
+            color: #f5f5dc;
+            font-size: 22px;
+            letter-spacing: 1px;
+            border: 1px solid #c6c6a0;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .controls-hint {
+            background: #000000aa;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 16px;
+            color: #e0e0e0;
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .controls-hint kbd {
+            background: #2c2c2c;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-weight: bold;
+            color: #ffd966;
+            margin: 0 4px;
+            font-family: monospace;
+        }
+
+        @media (max-width: 700px) {
+            .slot { width: 48px; height: 48px; }
+            .slot img { width: 36px; height: 36px; }
+            .info { font-size: 16px; padding: 4px 12px; min-width: 140px; }
+            .controls-hint { font-size: 12px; }
+            .ui-panel { padding: 8px 12px; bottom: 12px; }
+        }
+
+        @media (max-width: 550px) {
+            .controls-hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div class="ui-panel">
+    <div class="hotbar" id="hotbarContainer"></div>
+    <div class="info" id="coordInfo">X: 0 | Y: 0</div>
+    <div class="controls-hint">
+        <span><kbd>ЛКМ</kbd> - сломать</span>
+        <span><kbd>ПКМ</kbd> - построить</span>
+        <span><kbd>1-3</kbd> / колесо</span>
+        <span><kbd>WASD</kbd> или стрелки</span>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- НАСТРОЙКИ МИРА ----------
+        const TILE_SIZE = 48;          // размер блока в пикселях
+        const WORLD_WIDTH = 40;        // ширина мира в блоках
+        const WORLD_HEIGHT = 30;        // высота мира в блоках
+        
+        // Типы блоков
+        const TYPES = {
+            AIR: 0,
+            GRASS: 1,
+            DIRT: 2
+        };
+        
+        // Данные текстур (загрузятся динамически)
+        const textures = {
+            [TYPES.GRASS]: null,
+            [TYPES.DIRT]: null
+        };
+        
+        // Инвентарь: выбранный слот (0-2) и что в слотах
+        let selectedSlot = 0;
+        const inventory = [
+            { type: TYPES.GRASS, count: 64, name: "Трава" },
+            { type: TYPES.DIRT, count: 64, name: "Земля" },
+            { type: TYPES.GRASS, count: 32, name: "Трава" }   // для теста запас
+        ];
+        
+        // Генерация мира (простые ландшафты)
+        let worldMap = Array(WORLD_HEIGHT).fill().map(() => Array(WORLD_WIDTH).fill(TYPES.AIR));
+        
+        function generateWorld() {
+            // Базовый слой земли : нижние 8 блоков - земля, сверху трава
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                for (let x = 0; x < WORLD_WIDTH; x++) {
+                    if (y >= WORLD_HEIGHT - 6) {
+                        worldMap[y][x] = TYPES.DIRT;
+                    } else if (y === WORLD_HEIGHT - 7) {
+                        worldMap[y][x] = TYPES.GRASS;
+                    } else {
+                        worldMap[y][x] = TYPES.AIR;
+                    }
+                }
+            }
+            // Небольшие холмы
+            for (let x = 5; x < 20; x++) {
+                let hillHeight = Math.floor(Math.sin(x * 0.5) * 2 + 2);
+                for (let h = 0; h < hillHeight; h++) {
+                    let y = WORLD_HEIGHT - 7 - h;
+                    if (y >= 0 && y < WORLD_HEIGHT) {
+                        if (h === 0) worldMap[y][x] = TYPES.GRASS;
+                        else worldMap[y][x] = TYPES.DIRT;
+                    }
+                }
+            }
+            // Пещера/каверна для интереса (убираем часть блоков воздуха, но добавим тьфу)
+            for (let i = 0; i < 60; i++) {
+                let x = 12 + Math.floor(Math.random() * 15);
+                let y = WORLD_HEIGHT - 12 + Math.floor(Math.random() * 6);
+                if (y > 0 && y < WORLD_HEIGHT-1 && worldMap[y][x] !== TYPES.AIR) {
+                    worldMap[y][x] = TYPES.AIR;
+                }
+            }
+            // дерево простое (демо)
+            function addTree(baseX, baseY) {
+                if (baseY-1 < 0) return;
+                for (let h = 0; h < 4; h++) {
+                    let yy = baseY - h;
+                    if (yy>=0 && worldMap[yy][baseX] === TYPES.AIR) worldMap[yy][baseX] = TYPES.DIRT;
+                }
+                worldMap[baseY-1][baseX] = TYPES.GRASS;
+                worldMap[baseY-2][baseX] = TYPES.GRASS;
+            }
+            addTree(25, WORLD_HEIGHT-7);
+            addTree(30, WORLD_HEIGHT-8);
+            addTree(8, WORLD_HEIGHT-6);
+        }
+        
+        // Игровая камера (центрируется на игроке)
+        let cameraX = 0;
+        let cameraY = 0;
+        
+        // Игрок: координаты в пикселях (центр блока)
+        let playerX = (WORLD_WIDTH / 2) * TILE_SIZE;
+        let playerY = (WORLD_HEIGHT - 8) * TILE_SIZE;
+        const PLAYER_SIZE = TILE_SIZE * 0.7;
+        const PLAYER_SPEED = 320; // пикс/сек
+        
+        // Физика/гравитация
+        let velocityY = 0;
+        let onGround = true;
+        const GRAVITY = 1600;
+        const JUMP_POWER = -520;
+        
+        // Управление
+        const keys = {
+            ArrowLeft: false, ArrowRight: false, KeyA: false, KeyD: false,
+            ArrowUp: false, ArrowDown: false, KeyW: false, KeyS: false,
+            Space: false
+        };
+        
+        let lastTimestamp = 0;
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        // Загрузка текстур и начало игры
+        let texturesLoaded = 0;
+        const requiredTextures = 2;
+        
+        function textureLoaded() {
+            texturesLoaded++;
+            if (texturesLoaded === requiredTextures) {
+                initGameAfterTextures();
+            }
+        }
+        
+        // загружаем grass.png и dirt.png из папки texturs/
+        const grassImg = new Image();
+        grassImg.onload = () => {
+            textures[TYPES.GRASS] = grassImg;
+            textureLoaded();
+        };
+        grassImg.onerror = () => {
+            console.warn("Не удалось загрузить grass.png, создаём запасной цвет");
+            textures[TYPES.GRASS] = "fallback";
+            textureLoaded();
+        };
+        grassImg.src = "texturs/grass.png";
+        
+        const dirtImg = new Image();
+        dirtImg.onload = () => {
+            textures[TYPES.DIRT] = dirtImg;
+            textureLoaded();
+        };
+        dirtImg.onerror = () => {
+            console.warn("Не удалось загрузить dirt.png, создаём запасной цвет");
+            textures[TYPES.DIRT] = "fallback";
+            textureLoaded();
+        };
+        dirtImg.src = "texturs/dirt.png";
+        
+        let gameRunning = false;
+        let animationId = null;
+        
+        // отрисовка блока (текстура или цвет)
+        function drawBlock(ctx, type, x, y, tileSize) {
+            if (type === TYPES.AIR) return;
+            let img = textures[type];
+            if (img && img !== "fallback" && img.complete && img.naturalWidth > 0) {
+                ctx.drawImage(img, x, y, tileSize, tileSize);
+            } else {
+                // fallback цвета для стиля minecraft
+                if (type === TYPES.GRASS) ctx.fillStyle = "#6b8c42";
+                else if (type === TYPES.DIRT) ctx.fillStyle = "#8b5a2b";
+                else ctx.fillStyle = "#a0a0a0";
+                ctx.fillRect(x, y, tileSize, tileSize);
+                ctx.strokeStyle = "#2c2c2c";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x+1, y+1, tileSize-2, tileSize-2);
+            }
+            // пиксельная обводка для "майнкрафт" стиля
+            if (!(img && img !== "fallback")) {
+                ctx.fillStyle = "#2c2c2c44";
+                ctx.fillRect(x, y, tileSize, 2);
+            }
+        }
+        
+        // Игрок: физика и коллизии с блоками (AABB)
+        function getPlayerBoundingBox() {
+            return {
+                x: playerX - PLAYER_SIZE/2,
+                y: playerY - PLAYER_SIZE/2,
+                w: PLAYER_SIZE,
+                h: PLAYER_SIZE
+            };
+        }
+        
+        function isSolidBlock(blockType) {
+            return blockType !== TYPES.AIR;
+        }
+        
+        // проверка столкновения с тайлами
+        function collideWithWorld(bbox, checkVertical = true) {
+            let startX = Math.floor(bbox.x / TILE_SIZE);
+            let endX = Math.floor((bbox.x + bbox.w - 1) / TILE_SIZE);
+            let startY = Math.floor(bbox.y / TILE_SIZE);
+            let endY = Math.floor((bbox.y + bbox.h - 1) / TILE_SIZE);
+            
+            for (let y = startY; y <= endY; y++) {
+                if (y < 0 || y >= WORLD_HEIGHT) continue;
+                for (let x = startX; x <= endX; x++) {
+                    if (x < 0 || x >= WORLD_WIDTH) continue;
+                    if (isSolidBlock(worldMap[y][x])) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function handleCollisions(deltaTime, moveX, moveY) {
+            // Горизонтальное перемещение
+            playerX += moveX;
+            let bbox = getPlayerBoundingBox();
+            if (collideWithWorld(bbox)) {
+                playerX -= moveX;
+                // уточнение
+                bbox = getPlayerBoundingBox();
+                if (moveX > 0) {
+                    let rightTileX = Math.floor((bbox.x + bbox.w) / TILE_SIZE);
+                    for (let yTile = Math.floor(bbox.y/TILE_SIZE); yTile <= Math.floor((bbox.y+bbox.h)/TILE_SIZE); yTile++) {
+                        if (yTile>=0 && yTile<WORLD_HEIGHT && rightTileX>=0 && rightTileX<WORLD_WIDTH && isSolidBlock(worldMap[yTile][rightTileX])) {
+                            playerX = rightTileX * TILE_SIZE - bbox.w/2;
+                            break;
+                        }
+                    }
+                } else if (moveX < 0) {
+                    let leftTileX = Math.floor(bbox.x / TILE_SIZE);
+                    for (let yTile = Math.floor(bbox.y/TILE_SIZE); yTile <= Math.floor((bbox.y+bbox.h)/TILE_SIZE); yTile++) {
+                        if (yTile>=0 && yTile<WORLD_HEIGHT && leftTileX>=0 && leftTileX<WORLD_WIDTH && isSolidBlock(worldMap[yTile][leftTileX])) {
+                            playerX = (leftTileX + 1) * TILE_SIZE + bbox.w/2;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Вертикальное перемещение + гравитация/земля
+            playerY += moveY;
+            bbox = getPlayerBoundingBox();
+            if (collideWithWorld(bbox)) {
+                playerY -= moveY;
+                if (moveY > 0) {
+                    onGround = true;
+                    velocityY = 0;
+                    // точная посадка
+                    bbox = getPlayerBoundingBox();
+                    let footTileY = Math.floor((bbox.y + bbox.h) / TILE_SIZE);
+                    for (let xTile = Math.floor(bbox.x/TILE_SIZE); xTile <= Math.floor((bbox.x+bbox.w)/TILE_SIZE); xTile++) {
+                        if (footTileY>=0 && footTileY<WORLD_HEIGHT && xTile>=0 && xTile<WORLD_WIDTH && isSolidBlock(worldMap[footTileY][xTile])) {
+                            playerY = footTileY * TILE_SIZE - bbox.h/2;
+                            break;
+                        }
+                    }
+                } else if (moveY < 0) {
+                    velocityY = 0;
+                    let headTileY = Math.floor(bbox.y / TILE_SIZE);
+                    for (let xTile = Math.floor(bbox.x/TILE_SIZE); xTile <= Math.floor((bbox.x+bbox.w)/TILE_SIZE); xTile++) {
+                        if (headTileY>=0 && headTileY<WORLD_HEIGHT && xTile>=0 && xTile<WORLD_WIDTH && isSolidBlock(worldMap[headTileY][xTile])) {
+                            playerY = (headTileY + 1) * TILE_SIZE + bbox.h/2;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                if (moveY > 0) onGround = false;
+            }
+        }
+        
+        // взаимодействие с миром: ломать блок
+        function breakBlockAt(mouseWorldX, mouseWorldY) {
+            let tileX = Math.floor(mouseWorldX / TILE_SIZE);
+            let tileY = Math.floor(mouseWorldY / TILE_SIZE);
+            if (tileX < 0 || tileX >= WORLD_WIDTH || tileY < 0 || tileY >= WORLD_HEIGHT) return false;
+            if (worldMap[tileY][tileX] !== TYPES.AIR) {
+                const blockType = worldMap[tileY][tileX];
+                worldMap[tileY][tileX] = TYPES.AIR;
+                // Добавляем дроп в инвентарь (простой: увеличиваем счётчик соответствующего слота)
+                if (blockType === TYPES.GRASS) {
+                    addToInventory(TYPES.GRASS);
+                } else if (blockType === TYPES.DIRT) {
+                    addToInventory(TYPES.DIRT);
+                }
+                return true;
+            }
+            return false;
+        }
+        
+        function addToInventory(type) {
+            for (let i = 0; i < inventory.length; i++) {
+                if (inventory[i].type === type && inventory[i].count < 999) {
+                    inventory[i].count++;
+                    return;
+                }
+            }
+            // если нет слота такого типа, то в первый попавшийся (но у нас все слоты содержат траву и землю)
+            for (let i = 0; i < inventory.length; i++) {
+                if (inventory[i].count === 0) {
+                    inventory[i].type = type;
+                    inventory[i].count = 1;
+                    return;
+                }
+            }
+        }
+        
+        // построить блок выбранным из слота
+        function placeBlockAt(mouseWorldX, mouseWorldY) {
+            let tileX = Math.floor(mouseWorldX / TILE_SIZE);
+            let tileY = Math.floor(mouseWorldY / TILE_SIZE);
+            if (tileX < 0 || tileX >= WORLD_WIDTH || tileY < 0 || tileY >= WORLD_HEIGHT) return false;
+            // нельзя ставить блок в игрока (проверка что блок не пересекается с позицией игрока)
+            const blockBbox = { x: tileX*TILE_SIZE, y: tileY*TILE_SIZE, w: TILE_SIZE, h: TILE_SIZE };
+            const playerBbox = getPlayerBoundingBox();
+            if (blockBbox.x + blockBbox.w > playerBbox.x && blockBbox.x < playerBbox.x+playerBbox.w &&
+                blockBbox.y + blockBbox.h > playerBbox.y && blockBbox.y < playerBbox.y+playerBbox.h) {
+                return false; // нельзя строить внутри игрока
+            }
+            if (worldMap[tileY][tileX] === TYPES.AIR) {
+                const selectedItem = inventory[selectedSlot];
+                if (selectedItem && selectedItem.count > 0 && (selectedItem.type === TYPES.GRASS || selectedItem.type === TYPES.DIRT)) {
+                    worldMap[tileY][tileX] = selectedItem.type;
+                    selectedItem.count--;
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // Обновление камеры, физики
+        function updateGame(deltaSec) {
+            if (!gameRunning) return;
+            let moveX = 0;
+            if (keys.ArrowLeft || keys.KeyA) moveX = -1;
+            if (keys.ArrowRight || keys.KeyD) moveX = 1;
+            let moveAmountX = moveX * PLAYER_SPEED * deltaSec;
+            
+            // прыжок
+            if ((keys.Space || keys.ArrowUp || keys.KeyW) && onGround) {
+                velocityY = JUMP_POWER;
+                onGround = false;
+            }
+            
+            // гравитация
+            velocityY += GRAVITY * deltaSec;
+            let moveY = velocityY * deltaSec;
+            
+            // коллизии
+            handleCollisions(deltaSec, moveAmountX, moveY);
+            
+            // ограничение мира по горизонтали (за пределы мира полумягкое)
+            let minX = PLAYER_SIZE/2;
+            let maxX = WORLD_WIDTH * TILE_SIZE - PLAYER_SIZE/2;
+            playerX = Math.min(maxX, Math.max(minX, playerX));
+            // проверка падения в бездну (если игрок слишком низко)
+            if (playerY > WORLD_HEIGHT * TILE_SIZE + 80) {
+                // респавн: телепорт на поверхность
+                playerX = (WORLD_WIDTH/2)*TILE_SIZE;
+                playerY = (WORLD_HEIGHT-7)*TILE_SIZE;
+                velocityY = 0;
+                onGround = true;
+            }
+            
+            // камера
+            cameraX = playerX - canvas.width/2;
+            cameraY = playerY - canvas.height/2;
+            cameraX = Math.min(Math.max(cameraX, 0), WORLD_WIDTH * TILE_SIZE - canvas.width);
+            cameraY = Math.min(Math.max(cameraY, 0), WORLD_HEIGHT * TILE_SIZE - canvas.height);
+        }
+        
+        function drawGame() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // небо
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#c0e0ff";
+            for(let i=0;i<60;i++) ctx.fillRect((i*97)%canvas.width, 20, 3, 6);
+            
+            // отрисовка видимых блоков
+            let startCol = Math.max(0, Math.floor(cameraX / TILE_SIZE));
+            let endCol = Math.min(WORLD_WIDTH-1, Math.floor((cameraX + canvas.width) / TILE_SIZE));
+            let startRow = Math.max(0, Math.floor(cameraY / TILE_SIZE));
+            let endRow = Math.min(WORLD_HEIGHT-1, Math.floor((cameraY + canvas.height) / TILE_SIZE));
+            
+            for (let row = startRow; row <= endRow; row++) {
+                for (let col = startCol; col <= endCol; col++) {
+                    let type = worldMap[row][col];
+                    if (type !== TYPES.AIR) {
+                        let drawX = col * TILE_SIZE - cameraX;
+                        let drawY = row * TILE_SIZE - cameraY;
+                        drawBlock(ctx, type, drawX, drawY, TILE_SIZE);
+                    }
+                }
+            }
+            
+            // рисуем игрока (пиксельная фигурка в стиле майнкрафт)
+            const playerDrawX = playerX - PLAYER_SIZE/2 - cameraX;
+            const playerDrawY = playerY - PLAYER_SIZE/2 - cameraY;
+            ctx.fillStyle = "#3b9b3b";
+            ctx.shadowBlur = 0;
+            ctx.fillRect(playerDrawX, playerDrawY, PLAYER_SIZE, PLAYER_SIZE);
+            ctx.fillStyle = "#2c6e2c";
+            ctx.fillRect(playerDrawX+4, playerDrawY-6, PLAYER_SIZE-8, 8);
+            ctx.fillStyle = "#1f1f1f";
+            ctx.fillRect(playerDrawX+12, playerDrawY+12, 6, 6);
+            ctx.fillRect(playerDrawX+PLAYER_SIZE-18, playerDrawY+12, 6, 6);
+            // глаза
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(playerDrawX+10, playerDrawY+10, 4, 4);
+            ctx.fillRect(playerDrawX+PLAYER_SIZE-14, playerDrawY+10, 4, 4);
+            ctx.fillStyle = "#000";
+            ctx.fillRect(playerDrawX+11, playerDrawY+11, 2, 2);
+            ctx.fillRect(playerDrawX+PLAYER_SIZE-13, playerDrawY+11, 2, 2);
+            
+            // отображение выделенного блока под курсором
+            let mouseCanvas = lastMousePosCanvas;
+            if (mouseCanvas && mouseCanvas.x >=0 && mouseCanvas.x <= canvas.width && mouseCanvas.y >=0 && mouseCanvas.y <= canvas.height) {
+                let worldX = mouseCanvas.x + cameraX;
+                let worldY = mouseCanvas.y + cameraY;
+                let hoverTileX = Math.floor(worldX / TILE_SIZE);
+                let hoverTileY = Math.floor(worldY / TILE_SIZE);
+                if (hoverTileX>=0 && hoverTileX<WORLD_WIDTH && hoverTileY>=0 && hoverTileY<WORLD_HEIGHT) {
+                    ctx.save();
+                    ctx.strokeStyle = "#ffff88";
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 0;
+                    ctx.strokeRect(hoverTileX*TILE_SIZE - cameraX, hoverTileY*TILE_SIZE - cameraY, TILE_SIZE, TILE_SIZE);
+                    ctx.restore();
+                }
+            }
+            
+            // отображение координат блока/игрока
+            const blockX = Math.floor(playerX / TILE_SIZE);
+            const blockY = Math.floor(playerY / TILE_SIZE);
+            document.getElementById('coordInfo').innerHTML = `🧱 ${blockX}, ${blockY}  |  🧺 ${inventory[selectedSlot].name} x${inventory[selectedSlot].count}`;
+        }
+        
+        let lastMousePosCanvas = { x: -100, y: -100 };
+        let mouseWorldPos = { x: 0, y: 0 };
+        
+        // обработчики мыши (ломать/ставить)
+        function onMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mouseX = (e.clientX - rect.left) * scaleX;
+            let mouseY = (e.clientY - rect.top) * scaleY;
+            mouseX = Math.min(Math.max(0, mouseX), canvas.width);
+            mouseY = Math.min(Math.max(0, mouseY), canvas.height);
+            lastMousePosCanvas = { x: mouseX, y: mouseY };
+        }
+        
+        function onMouseDown(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mouseX = (e.clientX - rect.left) * scaleX;
+            let mouseY = (e.clientY - rect.top) * scaleY;
+            if (mouseX < 0 || mouseX > canvas.width || mouseY<0 || mouseY>canvas.height) return;
+            let worldX = mouseX + cameraX;
+            let worldY = mouseY + cameraY;
+            if (e.button === 0) { // левая кнопка - ломать
+                breakBlockAt(worldX, worldY);
+            } else if (e.button === 2) { // правая - строить
+                placeBlockAt(worldX, worldY);
+            }
+        }
+        
+        function updateHotbarUI() {
+            const container = document.getElementById('hotbarContainer');
+            container.innerHTML = '';
+            for (let i=0; i<inventory.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = `slot ${selectedSlot === i ? 'selected' : ''}`;
+                let imgSrc = '';
+                if (inventory[i].type === TYPES.GRASS) imgSrc = 'texturs/grass.png';
+                else if (inventory[i].type === TYPES.DIRT) imgSrc = 'texturs/dirt.png';
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                img.alt = inventory[i].name;
+                img.onerror = ()=> { img.style.backgroundColor = "#6b8c42"; };
+                const span = document.createElement('span');
+                span.innerText = inventory[i].count;
+                slot.appendChild(img);
+                slot.appendChild(span);
+                slot.addEventListener('click', (idx => ()=> { selectedSlot = idx; updateHotbarUI(); })(i));
+                container.appendChild(slot);
+            }
+        }
+        
+        function handleKey(e, value) {
+            let code = e.code;
+            if (keys.hasOwnProperty(code)) keys[code] = value;
+            if (value && (code === 'Digit1')) { selectedSlot = 0; updateHotbarUI(); e.preventDefault();}
+            if (value && (code === 'Digit2')) { selectedSlot = 1; updateHotbarUI(); e.preventDefault();}
+            if (value && (code === 'Digit3')) { selectedSlot = 2; updateHotbarUI(); e.preventDefault();}
+            if (code === 'Space') { e.preventDefault(); }
+            if (code === 'KeyW' || code === 'KeyA' || code === 'KeyS' || code === 'KeyD') e.preventDefault();
+            if (code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight') e.preventDefault();
+        }
+        
+        function animate(timestamp) {
+            if (!gameRunning) return;
+            let delta = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
+            if (delta > 0.005) {
+                updateGame(delta);
+                drawGame();
+            }
+            lastTimestamp = timestamp;
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawGame();
+        }
+        
+        function initGameAfterTextures() {
+            generateWorld();
+            gameRunning = true;
+            resizeCanvas();
+            updateHotbarUI();
+            window.addEventListener('resize', () => { resizeCanvas(); drawGame(); });
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mousedown', onMouseDown);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            window.addEventListener('keydown', (e) => handleKey(e, true));
+            window.addEventListener('keyup', (e) => handleKey(e, false));
+            lastTimestamp = performance.now();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // если текстуры уже загружены синхронно, ждём
+        if (texturesLoaded === requiredTextures) initGameAfterTextures();
+        else {
+            // fallback: ожидание загрузки
+            const interval = setInterval(()=>{
+                if (texturesLoaded === requiredTextures) {
+                    clearInterval(interval);
+                    initGameAfterTextures();
+                }
+            }, 100);
+        }
+    })();
+</script>
+</body>
+</html>

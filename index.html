@@ -135,7 +135,7 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div class="game-title">Weecraft<span class="version">v4.3 Plastic</span></div>
+<div class="game-title">Weecraft<span class="version">v5.0 Ores & Gas</span></div>
 <div class="save-indicator" id="saveIndicator">💾 Сохранено</div>
 <div class="ui-panel">
     <div class="hotbar" id="hotbarContainer"></div>
@@ -154,41 +154,86 @@
         const CHUNK_SIZE = 16;
         const VIEW_RADIUS = 3;
         const BUILD_DISTANCE = 5;
-        const SAVE_KEY = 'weecraft_save_v4';
-        const DAY_LENGTH = 480; // seconds for a full day/night cycle
+        const SAVE_KEY = 'weecraft_save_v5';
+        const DAY_LENGTH = 480;
+        const WORLD_BOTTOM = 127; // глубина 127 блоков от поверхности
 
         let SEED = Math.floor(Math.random() * 1000000);
 
         const TYPES = {
             AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, WOOD: 4,
-            TRAPDOOR: 5, DYNAMITE: 6, IRON: 7, DIAMOND: 8, PLASTIC: 9,
-            CRAFTING_TABLE: 10, LEAVES: 11, COAL: 12, PLANKS: 13, STICK: 14
+            TRAPDOOR: 5, DYNAMITE: 6, IRON_ORE: 7, DIAMOND_ORE: 8, PLASTIC_BLOCK: 9,
+            CRAFTING_TABLE: 10, LEAVES: 11, COAL_ORE: 12, PLANKS: 13, STICK: 14,
+            // Новые типы блоков
+            GOLD_ORE: 15, REDSTONE_ORE: 16, EMERALD_ORE: 17, LAPIS_ORE: 18, QUARTZ_ORE: 19,
+            NATURAL_GAS: 20, // Природный газ (блок)
+            PLASTIC_MASS: 21, // Пластиковая масса (крафтится из угля + газа)
+            COAL_BLOCK: 22, IRON_BLOCK: 23, GOLD_BLOCK: 24, DIAMOND_BLOCK: 25,
+            REDSTONE_BLOCK: 26, EMERALD_BLOCK: 27, LAPIS_BLOCK: 28, QUARTZ_BLOCK: 29
         };
 
         const BLOCK_NAMES = {
             1: "Трава", 2: "Земля", 3: "Камень", 4: "Древесина",
-            5: "Люк", 6: "Динамит", 7: "Железо", 8: "Алмаз", 9: "Пластик",
-            10: "Верстак", 11: "Листва", 12: "Уголь", 13: "Доски", 14: "Палка"
+            5: "Люк", 6: "Динамит", 7: "Железная руда", 8: "Алмазная руда", 9: "Пластик",
+            10: "Верстак", 11: "Листва", 12: "Угольная руда", 13: "Доски", 14: "Палка",
+            15: "Золотая руда", 16: "Редстоуновая руда", 17: "Изумрудная руда",
+            18: "Лазуритовая руда", 19: "Кварцевая руда", 20: "Природный газ",
+            21: "Пластиковая масса", 22: "Угольный блок", 23: "Железный блок",
+            24: "Золотой блок", 25: "Алмазный блок", 26: "Редстоуновый блок",
+            27: "Изумрудный блок", 28: "Лазуритовый блок", 29: "Кварцевый блок"
         };
 
-        // Blocks that require a pickaxe in hand to be broken and dropped (like real Minecraft)
-        const REQUIRES_PICKAXE = new Set([TYPES.STONE, TYPES.IRON, TYPES.DIAMOND, TYPES.COAL, TYPES.PLASTIC]);
+        // Блоки, требующие кирку
+        const REQUIRES_PICKAXE = new Set([
+            TYPES.STONE, TYPES.IRON_ORE, TYPES.DIAMOND_ORE, TYPES.COAL_ORE,
+            TYPES.PLASTIC_BLOCK, TYPES.GOLD_ORE, TYPES.REDSTONE_ORE,
+            TYPES.EMERALD_ORE, TYPES.LAPIS_ORE, TYPES.QUARTZ_ORE,
+            TYPES.NATURAL_GAS, TYPES.COAL_BLOCK, TYPES.IRON_BLOCK,
+            TYPES.GOLD_BLOCK, TYPES.DIAMOND_BLOCK, TYPES.REDSTONE_BLOCK,
+            TYPES.EMERALD_BLOCK, TYPES.LAPIS_BLOCK, TYPES.QUARTZ_BLOCK
+        ]);
 
         const texturePaths = {
-            [TYPES.GRASS]: "texturs/grass.png", [TYPES.DIRT]: "texturs/dirt.png",
-            [TYPES.STONE]: "texturs/stone.png", [TYPES.WOOD]: "texturs/wood-oak.png",
-            [TYPES.TRAPDOOR]: "texturs/trapdoor.png", [TYPES.DYNAMITE]: "texturs/dynamite.png",
-            [TYPES.IRON]: "texturs/iron.png", [TYPES.DIAMOND]: "texturs/diamond.png",
-            [TYPES.PLASTIC]: "texturs/plastic.png", [TYPES.CRAFTING_TABLE]: "texturs/crafting_table.png",
-            [TYPES.LEAVES]: "texturs/leaves.png", [TYPES.COAL]: "texturs/coal.png",
-            [TYPES.PLANKS]: "texturs/planks.png", [TYPES.STICK]: "texturs/stick.png"
+            [TYPES.GRASS]: "texturs/grass.png",
+            [TYPES.DIRT]: "texturs/dirt.png",
+            [TYPES.STONE]: "texturs/stone.png",
+            [TYPES.WOOD]: "texturs/wood-oak.png",
+            [TYPES.TRAPDOOR]: "texturs/trapdoor.png",
+            [TYPES.DYNAMITE]: "texturs/dynamite.png",
+            [TYPES.IRON_ORE]: "texturs/iron_ore.png",
+            [TYPES.DIAMOND_ORE]: "texturs/diamond_ore.png",
+            [TYPES.PLASTIC_BLOCK]: "texturs/plastic.png",
+            [TYPES.CRAFTING_TABLE]: "texturs/crafting_table.png",
+            [TYPES.LEAVES]: "texturs/leaves.png",
+            [TYPES.COAL_ORE]: "texturs/coal_ore.png",
+            [TYPES.PLANKS]: "texturs/planks.png",
+            [TYPES.STICK]: "texturs/stick.png",
+            [TYPES.GOLD_ORE]: "texturs/gold_ore.png",
+            [TYPES.REDSTONE_ORE]: "texturs/redstone_ore.png",
+            [TYPES.EMERALD_ORE]: "texturs/emerald_ore.png",
+            [TYPES.LAPIS_ORE]: "texturs/lapis_ore.png",
+            [TYPES.QUARTZ_ORE]: "texturs/quartz_ore.png",
+            [TYPES.NATURAL_GAS]: "texturs/natural_gas.png",
+            [TYPES.PLASTIC_MASS]: "texturs/plastic_mass.png",
+            [TYPES.COAL_BLOCK]: "texturs/coal_block.png",
+            [TYPES.IRON_BLOCK]: "texturs/iron_block.png",
+            [TYPES.GOLD_BLOCK]: "texturs/gold_block.png",
+            [TYPES.DIAMOND_BLOCK]: "texturs/diamond_block.png",
+            [TYPES.REDSTONE_BLOCK]: "texturs/redstone_block.png",
+            [TYPES.EMERALD_BLOCK]: "texturs/emerald_block.png",
+            [TYPES.LAPIS_BLOCK]: "texturs/lapis_block.png",
+            [TYPES.QUARTZ_BLOCK]: "texturs/quartz_block.png"
         };
 
-        // Fallback colors used until/unless real textures load
+        // Fallback цвета для всех блоков
         const FALLBACK_COLORS = {
             1:"#5a9e3a", 2:"#8b5a2b", 3:"#888888", 4:"#7a4a22", 5:"#8b5a2b",
             6:"#cc3333", 7:"#c0c0c0", 8:"#4ff2f2", 9:"#ffaa66", 10:"#aa8c54",
-            11:"#2d6e2d", 12:"#222222", 13:"#c19a5b", 14:"#a9773f"
+            11:"#2d6e2d", 12:"#222222", 13:"#c19a5b", 14:"#a9773f",
+            15:"#ffd700", 16:"#ff3300", 17:"#50c878", 18:"#2144a0", 19:"#ffffff",
+            20:"#66ccff", 21:"#88dd88", 22:"#333333", 23:"#cccccc",
+            24:"#ffd700", 25:"#4ff2f2", 26:"#ff3300", 27:"#50c878",
+            28:"#2144a0", 29:"#ffffff"
         };
 
         let textures = {};
@@ -217,8 +262,9 @@
         const keys = {};
         let trapdoorStates = new Map();
         let lastLoadedChunkKey = "";
-        let gameTime = 0; // seconds since world start, drives day/night cycle
+        let gameTime = 0;
         let stars = [];
+        let hasCraftedWorkbench = false; // Флаг, что верстак был скрафчен
 
         function hash(x, seed) {
             let h = (x * 374761393 + seed * 668265263) | 0;
@@ -257,7 +303,7 @@
 
         function chunkKey(cx, cy) { return `${cx},${cy}`; }
 
-        // === ГЕНЕРАЦИЯ ЖИЛЫ РУДЫ ===
+        // Функция для генерации жил с заданными параметрами (шанс, глубина, размер)
         function generateOreVein(chunk, worldX0, worldY0, startX, startY, oreType, oreSize) {
             const visited = new Set();
             const queue = [{x: startX, y: startY}];
@@ -312,36 +358,55 @@
                     } else {
                         const depth = worldY - surfaceY;
                         const r = hash2d(worldX, worldY, SEED + 100);
-                        if (depth > 20 && r < 0.015) block = TYPES.DIAMOND;
-                        else if (depth > 10 && r < 0.06) block = TYPES.IRON;
-                        else if (depth > 5 && r < 0.12) block = TYPES.COAL;
-                        else block = TYPES.STONE;
 
-                        if (worldY > surfaceY + 5) {
+                        // Генерация руд с шансами как в Minecraft (приблизительно)
+                        // Уголь: глубина 5-50, шанс ~0.15
+                        if (depth >= 5 && depth <= 50 && r < 0.15) {
+                            block = TYPES.COAL_ORE;
+                        }
+                        // Железо: глубина 5-60, шанс ~0.10
+                        else if (depth >= 5 && depth <= 60 && r < 0.10) {
+                            block = TYPES.IRON_ORE;
+                        }
+                        // Золото: глубина 20-60, шанс ~0.05
+                        else if (depth >= 20 && depth <= 60 && r < 0.05) {
+                            block = TYPES.GOLD_ORE;
+                        }
+                        // Алмазы: глубина 20-70, шанс ~0.025
+                        else if (depth >= 20 && depth <= 70 && r < 0.025) {
+                            block = TYPES.DIAMOND_ORE;
+                        }
+                        // Редстоун: глубина 10-70, шанс ~0.04
+                        else if (depth >= 10 && depth <= 70 && r < 0.04) {
+                            block = TYPES.REDSTONE_ORE;
+                        }
+                        // Лазурит: глубина 15-70, шанс ~0.03
+                        else if (depth >= 15 && depth <= 70 && r < 0.03) {
+                            block = TYPES.LAPIS_ORE;
+                        }
+                        // Изумруд: только в определенных биомах, но для простоты редко на любой глубине 20-60
+                        else if (depth >= 20 && depth <= 60 && r < 0.008) {
+                            block = TYPES.EMERALD_ORE;
+                        }
+                        // Кварц: глубина 30-80, шанс ~0.02
+                        else if (depth >= 30 && depth <= 80 && r < 0.02) {
+                            block = TYPES.QUARTZ_ORE;
+                        }
+                        // Природный газ: глубина 40-100, шанс ~0.04
+                        else if (depth >= 40 && depth <= 100 && r < 0.04) {
+                            block = TYPES.NATURAL_GAS;
+                        }
+                        else {
+                            block = TYPES.STONE;
+                        }
+
+                        // Пещеры (только в каменных слоях)
+                        if (block === TYPES.STONE && depth > 5) {
                             if (caveNoise(worldX, worldY) > 0.65) block = TYPES.AIR;
                         }
                     }
 
                     chunk[ly * CHUNK_SIZE + lx] = block;
-                }
-            }
-
-            // === ЖИЛЫ ПЛАСТИКА ===
-            for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-                const worldX = worldX0 + lx;
-                const surfaceY = terrainHeight(worldX);
-
-                for (let ly = 0; ly < CHUNK_SIZE; ly++) {
-                    const worldY = worldY0 + ly;
-                    const depth = worldY - surfaceY;
-
-                    if (depth >= 15 && depth <= 35 && chunk[ly * CHUNK_SIZE + lx] === TYPES.STONE) {
-                        const plasticChance = hash2d(worldX, worldY, SEED + 500);
-                        if (plasticChance < 0.035) {
-                            const veinSize = 2 + Math.floor(hash2d(worldX, worldY, SEED + 600) * 3);
-                            generateOreVein(chunk, worldX0, worldY0, worldX, worldY, TYPES.PLASTIC, veinSize);
-                        }
-                    }
                 }
             }
 
@@ -469,14 +534,15 @@
         function saveGame() {
             const data = {
                 seed: SEED,
-                version: 2,
+                version: 3,
                 inventory: inventory,
                 playerX: playerX,
                 playerY: playerY,
                 selectedSlot: selectedSlot,
                 trapdoorStates: Array.from(trapdoorStates.entries()),
                 modifiedBlocks: Array.from(modifiedBlocks.entries()),
-                gameTime: gameTime
+                gameTime: gameTime,
+                hasCraftedWorkbench: hasCraftedWorkbench
             };
             try {
                 localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -500,6 +566,7 @@
                 trapdoorStates = new Map(data.trapdoorStates || []);
                 modifiedBlocks = new Map(data.modifiedBlocks || []);
                 gameTime = data.gameTime ?? 0;
+                hasCraftedWorkbench = data.hasCraftedWorkbench ?? false;
 
                 if (selectedSlot >= inventory.length && inventory.length > 0) {
                     selectedSlot = 0;
@@ -580,9 +647,7 @@
                 }
             }
 
-            // Fixed starfield for the night sky (screen-space, regenerated on resize)
             regenerateStars();
-
             updateChunks();
         }
 
@@ -601,33 +666,58 @@
         }
 
         // ===================== КРАФТ =====================
-        // Позиционные рецепты для верстака (3x3). null = пустая ячейка.
+        // Рецепты для верстака (3x3)
         const RECIPES_3X3 = [
             { name: "Верстак", type: TYPES.CRAFTING_TABLE, count: 1,
               pattern: [TYPES.PLANKS, TYPES.PLANKS, null, TYPES.PLANKS, TYPES.PLANKS, null, null, null, null] },
             { name: "Люк", type: TYPES.TRAPDOOR, count: 2,
               pattern: [null, null, null, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS] },
-            { name: "Кирка", type: TYPES.IRON, count: 1, isPickaxe: true,
-              pattern: [TYPES.IRON, TYPES.IRON, TYPES.IRON, null, TYPES.STICK, null, null, TYPES.STICK, null] },
-            { name: "Меч", type: TYPES.IRON, count: 1, isSword: true,
-              pattern: [null, TYPES.IRON, null, null, TYPES.IRON, null, null, TYPES.STICK, null] },
-            { name: "Огниво", type: TYPES.IRON, count: 1, isFlint: true,
-              pattern: [TYPES.IRON, null, null, TYPES.STONE, null, null, null, null, null] },
+            { name: "Кирка", type: TYPES.IRON_ORE, count: 1, isPickaxe: true,
+              pattern: [TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
+            { name: "Меч", type: TYPES.IRON_ORE, count: 1, isSword: true,
+              pattern: [null, TYPES.IRON_ORE, null, null, TYPES.IRON_ORE, null, null, TYPES.STICK, null] },
+            { name: "Огниво", type: TYPES.IRON_ORE, count: 1, isFlint: true,
+              pattern: [TYPES.IRON_ORE, null, null, TYPES.STONE, null, null, null, null, null] },
             { name: "Динамит", type: TYPES.DYNAMITE, count: 2,
-              pattern: [TYPES.IRON, TYPES.GRASS, TYPES.IRON, TYPES.IRON, TYPES.GRASS, TYPES.IRON, TYPES.PLANKS, null, TYPES.PLANKS] },
-            { name: "Пластик (крафт)", type: TYPES.PLASTIC, count: 4,
-              pattern: [TYPES.COAL, TYPES.COAL, null, TYPES.COAL, TYPES.COAL, null, null, TYPES.IRON, null] }
+              pattern: [TYPES.IRON_ORE, TYPES.GRASS, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.GRASS, TYPES.IRON_ORE, TYPES.PLANKS, null, TYPES.PLANKS] },
+            { name: "Пластиковая масса", type: TYPES.PLASTIC_MASS, count: 4,
+              pattern: [TYPES.COAL_ORE, TYPES.COAL_ORE, null, TYPES.COAL_ORE, TYPES.COAL_ORE, null, null, TYPES.NATURAL_GAS, null] },
+            { name: "Пластиковый блок", type: TYPES.PLASTIC_BLOCK, count: 1,
+              pattern: [TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS] },
+            // Блоки из руды (9 единиц)
+            { name: "Угольный блок", type: TYPES.COAL_BLOCK, count: 1,
+              pattern: [TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE] },
+            { name: "Железный блок", type: TYPES.IRON_BLOCK, count: 1,
+              pattern: [TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE] },
+            { name: "Золотой блок", type: TYPES.GOLD_BLOCK, count: 1,
+              pattern: [TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE, TYPES.GOLD_ORE] },
+            { name: "Алмазный блок", type: TYPES.DIAMOND_BLOCK, count: 1,
+              pattern: [TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE] },
+            { name: "Редстоуновый блок", type: TYPES.REDSTONE_BLOCK, count: 1,
+              pattern: [TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE, TYPES.REDSTONE_ORE] },
+            { name: "Изумрудный блок", type: TYPES.EMERALD_BLOCK, count: 1,
+              pattern: [TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE, TYPES.EMERALD_ORE] },
+            { name: "Лазуритовый блок", type: TYPES.LAPIS_BLOCK, count: 1,
+              pattern: [TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE, TYPES.LAPIS_ORE] },
+            { name: "Кварцевый блок", type: TYPES.QUARTZ_BLOCK, count: 1,
+              pattern: [TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE] },
         ];
 
-        // Рецепты без привязки к позиции (можно собирать и в инвентаре 2x2, и на верстаке).
-        // "needs" — сколько предметов каждого типа нужно суммарно (все занятые ячейки должны совпасть).
+        // Бесформенные рецепты (для 2x2)
         const SHAPELESS_RECIPES = [
             { name: "Доски", type: TYPES.PLANKS, count: 4, needs: { [TYPES.WOOD]: 1 } },
             { name: "Палка", type: TYPES.STICK, count: 4, needs: { [TYPES.PLANKS]: 2 } },
             { name: "Верстак", type: TYPES.CRAFTING_TABLE, count: 1, needs: { [TYPES.PLANKS]: 4 } }
         ];
 
-        function matchShapeless(slots) {
+        // Проверка, можно ли крафтить палки (требуется наличие верстака)
+        function canCraftSticks() {
+            // Проверяем, есть ли верстак в инвентаре
+            return hasCraftedWorkbench || inventory.some(item => item.type === TYPES.CRAFTING_TABLE);
+        }
+
+        // Модифицируем поиск рецепта для 2x2 с проверкой на палки
+        function matchShapelessWithCheck(slots) {
             const counts = {};
             let filled = 0;
             for (const s of slots) {
@@ -636,7 +726,11 @@
                 counts[s.type] = (counts[s.type] || 0) + s.count;
             }
             if (filled === 0) return null;
+
             for (const recipe of SHAPELESS_RECIPES) {
+                // Проверка для палок
+                if (recipe.type === TYPES.STICK && !canCraftSticks()) continue;
+
                 const needKeys = Object.keys(recipe.needs);
                 const haveKeys = Object.keys(counts);
                 if (needKeys.length !== haveKeys.length) continue;
@@ -650,21 +744,34 @@
         }
 
         function checkCrafting3x3() {
-            // Сначала пробуем точные позиционные рецепты
+            // Сначала пробуем позиционные рецепты
             for (let recipe of RECIPES_3X3) {
+                // Пропускаем палки в 3x3 (они только в shapeless)
+                if (recipe.type === TYPES.STICK) continue;
+
                 let match = true;
                 for (let i = 0; i < 9; i++) {
                     let slotType = craftingSlots[i] ? craftingSlots[i].type : null;
                     if (slotType !== recipe.pattern[i]) { match = false; break; }
                 }
                 if (match) {
+                    // Если крафтим верстак, устанавливаем флаг
+                    if (recipe.type === TYPES.CRAFTING_TABLE) {
+                        hasCraftedWorkbench = true;
+                    }
                     craftResult3x3(recipe);
                     return;
                 }
             }
-            // Затем — рецепты без привязки к позиции (доски, палки и т.д.)
-            const shapeless = matchShapeless(craftingSlots);
-            if (shapeless) craftResult3x3(shapeless);
+
+            // Бесформенные рецепты в 3x3 (доски, палки, верстак)
+            const shapeless = matchShapelessWithCheck(craftingSlots);
+            if (shapeless) {
+                if (shapeless.type === TYPES.CRAFTING_TABLE) {
+                    hasCraftedWorkbench = true;
+                }
+                craftResult3x3(shapeless);
+            }
         }
 
         function craftResult3x3(recipe) {
@@ -680,8 +787,11 @@
         }
 
         function checkCrafting2x2() {
-            const recipe = matchShapeless(inventoryCraftingSlots);
+            const recipe = matchShapelessWithCheck(inventoryCraftingSlots);
             if (recipe) {
+                if (recipe.type === TYPES.CRAFTING_TABLE) {
+                    hasCraftedWorkbench = true;
+                }
                 addToInventory(recipe.type, recipe.count, { name: recipe.name });
                 inventoryCraftingSlots = Array(4).fill(null);
                 renderInventoryMenu();
@@ -711,7 +821,12 @@
             let type = getBlock(tx, ty);
             if (type === TYPES.AIR) return false;
 
-            // Камень, руды и пластик требуют кирку в руке — иначе блок не ломается (как в настоящем Minecraft)
+            // Проверка на нижнюю границу мира
+            const surfaceY = terrainHeight(tx);
+            if (ty > surfaceY + WORLD_BOTTOM) {
+                return false; // Нельзя ломать ниже границы мира
+            }
+
             if (REQUIRES_PICKAXE.has(type)) {
                 const held = inventory[selectedSlot];
                 if (!held || !held.isPickaxe) return false;
@@ -732,6 +847,12 @@
 
             if (Math.abs(pxBlock - tx) + Math.abs(pyBlock - ty) > BUILD_DISTANCE) return false;
             if (Math.abs(pxBlock - tx) < 0.8 && Math.abs(pyBlock - ty) < 0.8) return false;
+
+            // Проверка на нижнюю границу мира
+            const surfaceY = terrainHeight(tx);
+            if (ty > surfaceY + WORLD_BOTTOM) {
+                return false; // Нельзя строить ниже границы мира
+            }
 
             let item = inventory[selectedSlot];
             if (item && item.count > 0 && getBlock(tx, ty) === TYPES.AIR && item.type !== undefined
@@ -758,13 +879,11 @@
 
             let blockType = getBlock(tx, ty);
 
-            // Открытие верстака работает всегда, независимо от того, что выбрано в хотбаре
             if (blockType === TYPES.CRAFTING_TABLE) {
                 openCraftingTable(tx, ty);
                 return;
             }
 
-            // Огниво нужно только для подрыва динамита
             let item = inventory[selectedSlot];
             if (blockType === TYPES.DYNAMITE && item && item.isFlint) {
                 for (let dy = -1; dy <= 1; dy++) {
@@ -829,12 +948,12 @@
 
             let title = document.createElement('div');
             title.className = 'crafting-menu-title';
-            title.innerText = 'Инвентарь';
+            title.innerText = 'Инвентарь 2x2';
             menu.appendChild(title);
 
             let hint = document.createElement('div');
             hint.className = 'recipe-hint';
-            hint.innerText = 'ЛКМ: взять из хотбара | ПКМ: вернуть\nДоски из древесины, верстак из досок';
+            hint.innerText = 'ЛКМ: взять из хотбара | ПКМ: вернуть\nДоски из древесины, верстак из досок\nПалки доступны после крафта верстака';
             menu.appendChild(hint);
 
             let body = document.createElement('div');
@@ -888,7 +1007,7 @@
 
             let resultSlot = document.createElement('div');
             resultSlot.className = 'craft-result-slot';
-            const previewRecipe = matchShapeless(inventoryCraftingSlots);
+            const previewRecipe = matchShapelessWithCheck(inventoryCraftingSlots);
             if (previewRecipe) {
                 let img = document.createElement('img');
                 img.src = texturePaths[previewRecipe.type] || '';
@@ -904,7 +1023,11 @@
 
             let recipeBook = document.createElement('div');
             recipeBook.className = 'recipe-book';
-            for (const r of SHAPELESS_RECIPES) recipeBook.appendChild(makeRecipeBookItem(r));
+            for (const r of SHAPELESS_RECIPES) {
+                // Показываем палки только если доступны
+                if (r.type === TYPES.STICK && !canCraftSticks()) continue;
+                recipeBook.appendChild(makeRecipeBookItem(r));
+            }
             body.appendChild(recipeBook);
 
             let closeBtn = document.createElement('button');
@@ -939,6 +1062,7 @@
 
         function findMatchingRecipe3x3() {
             for (let recipe of RECIPES_3X3) {
+                if (recipe.type === TYPES.STICK) continue;
                 let match = true;
                 for (let i = 0; i < 9; i++) {
                     let slotType = craftingSlots[i] ? craftingSlots[i].type : null;
@@ -946,7 +1070,7 @@
                 }
                 if (match) return recipe;
             }
-            return matchShapeless(craftingSlots);
+            return matchShapelessWithCheck(craftingSlots);
         }
 
         function renderCraftingMenu() {
@@ -1035,8 +1159,14 @@
 
             let recipeBook = document.createElement('div');
             recipeBook.className = 'recipe-book';
-            for (const r of RECIPES_3X3) recipeBook.appendChild(makeRecipeBookItem(r));
-            for (const r of SHAPELESS_RECIPES) recipeBook.appendChild(makeRecipeBookItem(r));
+            for (const r of RECIPES_3X3) {
+                if (r.type === TYPES.STICK) continue;
+                recipeBook.appendChild(makeRecipeBookItem(r));
+            }
+            for (const r of SHAPELESS_RECIPES) {
+                if (r.type === TYPES.STICK && !canCraftSticks()) continue;
+                recipeBook.appendChild(makeRecipeBookItem(r));
+            }
             body.appendChild(recipeBook);
 
             let closeBtn = document.createElement('button');
@@ -1094,7 +1224,9 @@
             velocityY += GRAVITY * delta;
             handleCollisions(moveX * PLAYER_SPEED * delta, velocityY * delta);
 
-            if (playerY > 500 * TILE_SIZE) {
+            // Проверка падения в бездну
+            const surfaceY = terrainHeight(Math.floor(playerX / TILE_SIZE));
+            if (playerY > (surfaceY + WORLD_BOTTOM + 5) * TILE_SIZE) {
                 const spawnX = Math.floor(playerX / TILE_SIZE);
                 let spawnY = 0;
                 for (let y = 0; y < 200; y++) {
@@ -1127,12 +1259,10 @@
             }
         }
 
-        // Возвращает { skyTop, skyBottom, darkness, sunY, isDay } на основе игрового времени
         function getSkyState() {
-            const t = (gameTime % DAY_LENGTH) / DAY_LENGTH; // 0..1
-            // 0.0 - полночь, 0.25 - рассвет, 0.5 - полдень, 0.75 - закат
-            const sunAngle = t * Math.PI * 2 - Math.PI / 2; // sun highest at t=0.5
-            const sunHeight = Math.sin(sunAngle); // -1 (ночь) .. 1 (день)
+            const t = (gameTime % DAY_LENGTH) / DAY_LENGTH;
+            const sunAngle = t * Math.PI * 2 - Math.PI / 2;
+            const sunHeight = Math.sin(sunAngle);
 
             const dayTop = [135, 206, 235];
             const dayBottom = [200, 230, 245];
@@ -1173,7 +1303,6 @@
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Звёзды ночью
             if (sky.darkness > 0.25) {
                 const alpha = Math.min(1, (sky.darkness - 0.25) / 0.45);
                 ctx.save();
@@ -1188,7 +1317,6 @@
                 ctx.restore();
             }
 
-            // Солнце / Луна, двигаются по дуге неба
             const arcCenterX = canvas.width / 2;
             const arcCenterY = canvas.height * 0.85;
             const arcRadius = canvas.width * 0.6;
@@ -1227,7 +1355,6 @@
                 }
             }
 
-            // Ночное затемнение поверх мира
             if (sky.darkness > 0) {
                 ctx.fillStyle = `rgba(10, 12, 35, ${sky.darkness * 0.55})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1236,21 +1363,18 @@
             let px = playerX - PLAYER_SIZE/2 - cameraX;
             let py = playerY - PLAYER_SIZE/2 - cameraY;
 
-            // Тело игрока (Steve-подобная раскраска: рубашка, штаны, голова)
-            ctx.fillStyle = "#3d7bd9"; // рубашка
+            ctx.fillStyle = "#3d7bd9";
             ctx.fillRect(px, py + PLAYER_SIZE*0.35, PLAYER_SIZE, PLAYER_SIZE*0.4);
-            ctx.fillStyle = "#4a4a7a"; // штаны
+            ctx.fillStyle = "#4a4a7a";
             ctx.fillRect(px, py + PLAYER_SIZE*0.75, PLAYER_SIZE, PLAYER_SIZE*0.25);
-            ctx.fillStyle = "#e0a878"; // голова
+            ctx.fillStyle = "#e0a878";
             ctx.fillRect(px + PLAYER_SIZE*0.08, py - PLAYER_SIZE*0.05, PLAYER_SIZE*0.84, PLAYER_SIZE*0.42);
-            ctx.fillStyle = "#6b4a2f"; // волосы
+            ctx.fillStyle = "#6b4a2f";
             ctx.fillRect(px + PLAYER_SIZE*0.08, py - PLAYER_SIZE*0.1, PLAYER_SIZE*0.84, PLAYER_SIZE*0.15);
-            // Глаза (смотрят по направлению движения)
             ctx.fillStyle = "#222";
             const eyeX = facingRight ? px + PLAYER_SIZE*0.55 : px + PLAYER_SIZE*0.18;
             ctx.fillRect(eyeX, py + PLAYER_SIZE*0.1, PLAYER_SIZE*0.12, PLAYER_SIZE*0.12);
 
-            // Инструмент в руке
             const held = inventory[selectedSlot];
             if (held && (held.isPickaxe || held.isSword)) {
                 const handX = facingRight ? px + PLAYER_SIZE : px - PLAYER_SIZE*0.3;

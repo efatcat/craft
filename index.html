@@ -51,6 +51,10 @@
         .slot .tool-badge {
             position: absolute; top: 2px; left: 3px; font-size: 10px;
         }
+        .slot .tool-tier {
+            position: absolute; bottom: 2px; right: 3px; font-size: 8px;
+            color: #ffaa44; text-shadow: 1px 1px 0 #000;
+        }
         .info {
             background: #1f1f1fe6; padding: 8px 18px; border-radius: 40px;
             color: #ffffaa; font-size: 14px; min-width: 260px; text-align: center;
@@ -68,7 +72,7 @@
         .crafting-menu {
             background: #2c2c2c; border: 4px solid #aa8c54; border-radius: 16px;
             padding: 20px; display: flex; flex-direction: column; gap: 15px;
-            font-family: 'Minecraft Rus', monospace; max-width: 90vw;
+            font-family: 'Minecraft Rus', monospace; max-width: 90vw; max-height: 90vh; overflow-y: auto;
         }
         .crafting-menu-title {
             color: #e0c896; font-size: 18px; text-align: center; letter-spacing: 1px;
@@ -114,6 +118,9 @@
             background: #2e2e2e; padding: 4px 6px; border-radius: 6px;
         }
         .recipe-book-item img { width: 24px; height: 24px; image-rendering: pixelated; }
+        .recipe-book-item .tier-badge {
+            font-size: 9px; color: #ffaa44; margin-left: auto;
+        }
         .save-indicator {
             position: fixed; top: 80px; right: 25px; z-index: 250;
             background: rgba(30, 120, 60, 0.9); color: white;
@@ -135,7 +142,7 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div class="game-title">Weecraft<span class="version">v5.0 Ores & Gas</span></div>
+<div class="game-title">Weecraft<span class="version">v5.1 Pickaxe Tiers</span></div>
 <div class="save-indicator" id="saveIndicator">💾 Сохранено</div>
 <div class="ui-panel">
     <div class="hotbar" id="hotbarContainer"></div>
@@ -154,9 +161,9 @@
         const CHUNK_SIZE = 16;
         const VIEW_RADIUS = 3;
         const BUILD_DISTANCE = 5;
-        const SAVE_KEY = 'weecraft_save_v5';
+        const SAVE_KEY = 'weecraft_save_v5_1';
         const DAY_LENGTH = 480;
-        const WORLD_BOTTOM = 127; // глубина 127 блоков от поверхности
+        const WORLD_BOTTOM = 127;
 
         let SEED = Math.floor(Math.random() * 1000000);
 
@@ -164,10 +171,8 @@
             AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, WOOD: 4,
             TRAPDOOR: 5, DYNAMITE: 6, IRON_ORE: 7, DIAMOND_ORE: 8, PLASTIC_BLOCK: 9,
             CRAFTING_TABLE: 10, LEAVES: 11, COAL_ORE: 12, PLANKS: 13, STICK: 14,
-            // Новые типы блоков
             GOLD_ORE: 15, REDSTONE_ORE: 16, EMERALD_ORE: 17, LAPIS_ORE: 18, QUARTZ_ORE: 19,
-            NATURAL_GAS: 20, // Природный газ (блок)
-            PLASTIC_MASS: 21, // Пластиковая масса (крафтится из угля + газа)
+            NATURAL_GAS: 20, PLASTIC_MASS: 21,
             COAL_BLOCK: 22, IRON_BLOCK: 23, GOLD_BLOCK: 24, DIAMOND_BLOCK: 25,
             REDSTONE_BLOCK: 26, EMERALD_BLOCK: 27, LAPIS_BLOCK: 28, QUARTZ_BLOCK: 29
         };
@@ -183,15 +188,39 @@
             27: "Изумрудный блок", 28: "Лазуритовый блок", 29: "Кварцевый блок"
         };
 
-        // Блоки, требующие кирку
-        const REQUIRES_PICKAXE = new Set([
-            TYPES.STONE, TYPES.IRON_ORE, TYPES.DIAMOND_ORE, TYPES.COAL_ORE,
-            TYPES.PLASTIC_BLOCK, TYPES.GOLD_ORE, TYPES.REDSTONE_ORE,
-            TYPES.EMERALD_ORE, TYPES.LAPIS_ORE, TYPES.QUARTZ_ORE,
-            TYPES.NATURAL_GAS, TYPES.COAL_BLOCK, TYPES.IRON_BLOCK,
-            TYPES.GOLD_BLOCK, TYPES.DIAMOND_BLOCK, TYPES.REDSTONE_BLOCK,
-            TYPES.EMERALD_BLOCK, TYPES.LAPIS_BLOCK, TYPES.QUARTZ_BLOCK
-        ]);
+        // Уровни кирок: деревянная, каменная, железная, алмазная, пластиковая
+        const PICKAXE_TIERS = {
+            WOOD: { name: "Деревянная кирка", tier: 0, material: TYPES.WOOD },
+            STONE: { name: "Каменная кирка", tier: 1, material: TYPES.STONE },
+            IRON: { name: "Железная кирка", tier: 2, material: TYPES.IRON_ORE },
+            DIAMOND: { name: "Алмазная кирка", tier: 3, material: TYPES.DIAMOND_ORE },
+            PLASTIC: { name: "Пластиковая кирка", tier: 4, material: TYPES.PLASTIC_BLOCK }
+        };
+
+        // Какая руда каким уровнем кирки добывается
+        const ORE_TIERS = {
+            [TYPES.COAL_ORE]: 0,        // деревянная
+            [TYPES.IRON_ORE]: 1,        // каменная
+            [TYPES.GOLD_ORE]: 1,        // каменная
+            [TYPES.LAPIS_ORE]: 1,       // каменная
+            [TYPES.REDSTONE_ORE]: 2,    // железная
+            [TYPES.DIAMOND_ORE]: 2,     // железная
+            [TYPES.EMERALD_ORE]: 2,     // железная
+            [TYPES.QUARTZ_ORE]: 2,      // железная
+            [TYPES.NATURAL_GAS]: 2,     // железная
+            [TYPES.STONE]: 0,           // деревянная
+            [TYPES.PLASTIC_BLOCK]: 3,   // алмазная
+            [TYPES.COAL_BLOCK]: 0,
+            [TYPES.IRON_BLOCK]: 1,
+            [TYPES.GOLD_BLOCK]: 1,
+            [TYPES.DIAMOND_BLOCK]: 2,
+            [TYPES.REDSTONE_BLOCK]: 2,
+            [TYPES.EMERALD_BLOCK]: 2,
+            [TYPES.LAPIS_BLOCK]: 1,
+            [TYPES.QUARTZ_BLOCK]: 2
+        };
+
+        const REQUIRES_PICKAXE = new Set(Object.keys(ORE_TIERS).map(Number));
 
         const texturePaths = {
             [TYPES.GRASS]: "texturs/grass.png",
@@ -225,7 +254,6 @@
             [TYPES.QUARTZ_BLOCK]: "texturs/quartz_block.png"
         };
 
-        // Fallback цвета для всех блоков
         const FALLBACK_COLORS = {
             1:"#5a9e3a", 2:"#8b5a2b", 3:"#888888", 4:"#7a4a22", 5:"#8b5a2b",
             6:"#cc3333", 7:"#c0c0c0", 8:"#4ff2f2", 9:"#ffaa66", 10:"#aa8c54",
@@ -264,7 +292,7 @@
         let lastLoadedChunkKey = "";
         let gameTime = 0;
         let stars = [];
-        let hasCraftedWorkbench = false; // Флаг, что верстак был скрафчен
+        let hasCraftedWorkbench = false;
 
         function hash(x, seed) {
             let h = (x * 374761393 + seed * 668265263) | 0;
@@ -303,7 +331,6 @@
 
         function chunkKey(cx, cy) { return `${cx},${cy}`; }
 
-        // Функция для генерации жил с заданными параметрами (шанс, глубина, размер)
         function generateOreVein(chunk, worldX0, worldY0, startX, startY, oreType, oreSize) {
             const visited = new Set();
             const queue = [{x: startX, y: startY}];
@@ -359,40 +386,30 @@
                         const depth = worldY - surfaceY;
                         const r = hash2d(worldX, worldY, SEED + 100);
 
-                        // Генерация руд с шансами как в Minecraft (приблизительно)
-                        // Уголь: глубина 5-50, шанс ~0.15
                         if (depth >= 5 && depth <= 50 && r < 0.15) {
                             block = TYPES.COAL_ORE;
                         }
-                        // Железо: глубина 5-60, шанс ~0.10
                         else if (depth >= 5 && depth <= 60 && r < 0.10) {
                             block = TYPES.IRON_ORE;
                         }
-                        // Золото: глубина 20-60, шанс ~0.05
                         else if (depth >= 20 && depth <= 60 && r < 0.05) {
                             block = TYPES.GOLD_ORE;
                         }
-                        // Алмазы: глубина 20-70, шанс ~0.025
                         else if (depth >= 20 && depth <= 70 && r < 0.025) {
                             block = TYPES.DIAMOND_ORE;
                         }
-                        // Редстоун: глубина 10-70, шанс ~0.04
                         else if (depth >= 10 && depth <= 70 && r < 0.04) {
                             block = TYPES.REDSTONE_ORE;
                         }
-                        // Лазурит: глубина 15-70, шанс ~0.03
                         else if (depth >= 15 && depth <= 70 && r < 0.03) {
                             block = TYPES.LAPIS_ORE;
                         }
-                        // Изумруд: только в определенных биомах, но для простоты редко на любой глубине 20-60
                         else if (depth >= 20 && depth <= 60 && r < 0.008) {
                             block = TYPES.EMERALD_ORE;
                         }
-                        // Кварц: глубина 30-80, шанс ~0.02
                         else if (depth >= 30 && depth <= 80 && r < 0.02) {
                             block = TYPES.QUARTZ_ORE;
                         }
-                        // Природный газ: глубина 40-100, шанс ~0.04
                         else if (depth >= 40 && depth <= 100 && r < 0.04) {
                             block = TYPES.NATURAL_GAS;
                         }
@@ -400,7 +417,6 @@
                             block = TYPES.STONE;
                         }
 
-                        // Пещеры (только в каменных слоях)
                         if (block === TYPES.STONE && depth > 5) {
                             if (caveNoise(worldX, worldY) > 0.65) block = TYPES.AIR;
                         }
@@ -534,7 +550,7 @@
         function saveGame() {
             const data = {
                 seed: SEED,
-                version: 3,
+                version: 4,
                 inventory: inventory,
                 playerX: playerX,
                 playerY: playerY,
@@ -593,7 +609,8 @@
                 s.name === name &&
                 !!s.isPickaxe === !!extra.isPickaxe &&
                 !!s.isSword === !!extra.isSword &&
-                !!s.isFlint === !!extra.isFlint
+                !!s.isFlint === !!extra.isFlint &&
+                s.pickaxeTier === extra.pickaxeTier
             );
             if (!invItem) {
                 invItem = { type, count: 0, name, ...extra };
@@ -672,8 +689,21 @@
               pattern: [TYPES.PLANKS, TYPES.PLANKS, null, TYPES.PLANKS, TYPES.PLANKS, null, null, null, null] },
             { name: "Люк", type: TYPES.TRAPDOOR, count: 2,
               pattern: [null, null, null, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS] },
-            { name: "Кирка", type: TYPES.IRON_ORE, count: 1, isPickaxe: true,
+            // Деревянная кирка
+            { name: "Деревянная кирка", type: TYPES.WOOD, count: 1, isPickaxe: true, pickaxeTier: 0,
+              pattern: [TYPES.WOOD, TYPES.WOOD, TYPES.WOOD, null, TYPES.STICK, null, null, TYPES.STICK, null] },
+            // Каменная кирка
+            { name: "Каменная кирка", type: TYPES.STONE, count: 1, isPickaxe: true, pickaxeTier: 1,
+              pattern: [TYPES.STONE, TYPES.STONE, TYPES.STONE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
+            // Железная кирка
+            { name: "Железная кирка", type: TYPES.IRON_ORE, count: 1, isPickaxe: true, pickaxeTier: 2,
               pattern: [TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
+            // Алмазная кирка
+            { name: "Алмазная кирка", type: TYPES.DIAMOND_ORE, count: 1, isPickaxe: true, pickaxeTier: 3,
+              pattern: [TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
+            // Пластиковая кирка
+            { name: "Пластиковая кирка", type: TYPES.PLASTIC_BLOCK, count: 1, isPickaxe: true, pickaxeTier: 4,
+              pattern: [TYPES.PLASTIC_BLOCK, TYPES.PLASTIC_BLOCK, TYPES.PLASTIC_BLOCK, null, TYPES.STICK, null, null, TYPES.STICK, null] },
             { name: "Меч", type: TYPES.IRON_ORE, count: 1, isSword: true,
               pattern: [null, TYPES.IRON_ORE, null, null, TYPES.IRON_ORE, null, null, TYPES.STICK, null] },
             { name: "Огниво", type: TYPES.IRON_ORE, count: 1, isFlint: true,
@@ -684,7 +714,6 @@
               pattern: [TYPES.COAL_ORE, TYPES.COAL_ORE, null, TYPES.COAL_ORE, TYPES.COAL_ORE, null, null, TYPES.NATURAL_GAS, null] },
             { name: "Пластиковый блок", type: TYPES.PLASTIC_BLOCK, count: 1,
               pattern: [TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS, TYPES.PLASTIC_MASS] },
-            // Блоки из руды (9 единиц)
             { name: "Угольный блок", type: TYPES.COAL_BLOCK, count: 1,
               pattern: [TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE, TYPES.COAL_ORE] },
             { name: "Железный блок", type: TYPES.IRON_BLOCK, count: 1,
@@ -703,20 +732,16 @@
               pattern: [TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE, TYPES.QUARTZ_ORE] },
         ];
 
-        // Бесформенные рецепты (для 2x2)
         const SHAPELESS_RECIPES = [
             { name: "Доски", type: TYPES.PLANKS, count: 4, needs: { [TYPES.WOOD]: 1 } },
             { name: "Палка", type: TYPES.STICK, count: 4, needs: { [TYPES.PLANKS]: 2 } },
             { name: "Верстак", type: TYPES.CRAFTING_TABLE, count: 1, needs: { [TYPES.PLANKS]: 4 } }
         ];
 
-        // Проверка, можно ли крафтить палки (требуется наличие верстака)
         function canCraftSticks() {
-            // Проверяем, есть ли верстак в инвентаре
             return hasCraftedWorkbench || inventory.some(item => item.type === TYPES.CRAFTING_TABLE);
         }
 
-        // Модифицируем поиск рецепта для 2x2 с проверкой на палки
         function matchShapelessWithCheck(slots) {
             const counts = {};
             let filled = 0;
@@ -728,7 +753,6 @@
             if (filled === 0) return null;
 
             for (const recipe of SHAPELESS_RECIPES) {
-                // Проверка для палок
                 if (recipe.type === TYPES.STICK && !canCraftSticks()) continue;
 
                 const needKeys = Object.keys(recipe.needs);
@@ -744,9 +768,7 @@
         }
 
         function checkCrafting3x3() {
-            // Сначала пробуем позиционные рецепты
             for (let recipe of RECIPES_3X3) {
-                // Пропускаем палки в 3x3 (они только в shapeless)
                 if (recipe.type === TYPES.STICK) continue;
 
                 let match = true;
@@ -755,7 +777,6 @@
                     if (slotType !== recipe.pattern[i]) { match = false; break; }
                 }
                 if (match) {
-                    // Если крафтим верстак, устанавливаем флаг
                     if (recipe.type === TYPES.CRAFTING_TABLE) {
                         hasCraftedWorkbench = true;
                     }
@@ -764,7 +785,6 @@
                 }
             }
 
-            // Бесформенные рецепты в 3x3 (доски, палки, верстак)
             const shapeless = matchShapelessWithCheck(craftingSlots);
             if (shapeless) {
                 if (shapeless.type === TYPES.CRAFTING_TABLE) {
@@ -779,7 +799,8 @@
                 name: recipe.name,
                 isPickaxe: recipe.isPickaxe,
                 isSword: recipe.isSword,
-                isFlint: recipe.isFlint
+                isFlint: recipe.isFlint,
+                pickaxeTier: recipe.pickaxeTier
             });
             craftingSlots = Array(9).fill(null);
             renderCraftingMenu();
@@ -810,6 +831,17 @@
 
         function isSolid(type) { return type !== TYPES.AIR; }
 
+        function getPickaxeTier(item) {
+            if (!item || !item.isPickaxe) return -1;
+            return item.pickaxeTier !== undefined ? item.pickaxeTier : 0;
+        }
+
+        function canBreakBlock(blockType, pickaxeTier) {
+            if (!REQUIRES_PICKAXE.has(blockType)) return true;
+            const requiredTier = ORE_TIERS[blockType] ?? 0;
+            return pickaxeTier >= requiredTier;
+        }
+
         function breakBlockAt(mouseWorldX, mouseWorldY) {
             let tx = Math.floor(mouseWorldX / TILE_SIZE);
             let ty = Math.floor(mouseWorldY / TILE_SIZE);
@@ -821,15 +853,17 @@
             let type = getBlock(tx, ty);
             if (type === TYPES.AIR) return false;
 
-            // Проверка на нижнюю границу мира
             const surfaceY = terrainHeight(tx);
             if (ty > surfaceY + WORLD_BOTTOM) {
-                return false; // Нельзя ломать ниже границы мира
+                return false;
             }
 
             if (REQUIRES_PICKAXE.has(type)) {
                 const held = inventory[selectedSlot];
-                if (!held || !held.isPickaxe) return false;
+                const tier = getPickaxeTier(held);
+                if (tier < 0 || !canBreakBlock(type, tier)) {
+                    return false;
+                }
             }
 
             setBlock(tx, ty, TYPES.AIR);
@@ -848,10 +882,9 @@
             if (Math.abs(pxBlock - tx) + Math.abs(pyBlock - ty) > BUILD_DISTANCE) return false;
             if (Math.abs(pxBlock - tx) < 0.8 && Math.abs(pyBlock - ty) < 0.8) return false;
 
-            // Проверка на нижнюю границу мира
             const surfaceY = terrainHeight(tx);
             if (ty > surfaceY + WORLD_BOTTOM) {
-                return false; // Нельзя строить ниже границы мира
+                return false;
             }
 
             let item = inventory[selectedSlot];
@@ -925,6 +958,11 @@
             document.querySelector('.crafting-overlay')?.remove();
         }
 
+        function getTierDisplay(tier) {
+            const names = ["Деревянная", "Каменная", "Железная", "Алмазная", "Пластиковая"];
+            return names[tier] || "Неизвестно";
+        }
+
         function makeRecipeBookItem(recipe) {
             const row = document.createElement('div');
             row.className = 'recipe-book-item';
@@ -934,6 +972,12 @@
             const label = document.createElement('span');
             label.innerText = `${recipe.name} x${recipe.count}`;
             row.appendChild(label);
+            if (recipe.isPickaxe) {
+                const badge = document.createElement('span');
+                badge.className = 'tier-badge';
+                badge.innerText = getTierDisplay(recipe.pickaxeTier || 0);
+                row.appendChild(badge);
+            }
             return row;
         }
 
@@ -1024,7 +1068,6 @@
             let recipeBook = document.createElement('div');
             recipeBook.className = 'recipe-book';
             for (const r of SHAPELESS_RECIPES) {
-                // Показываем палки только если доступны
                 if (r.type === TYPES.STICK && !canCraftSticks()) continue;
                 recipeBook.appendChild(makeRecipeBookItem(r));
             }
@@ -1224,7 +1267,6 @@
             velocityY += GRAVITY * delta;
             handleCollisions(moveX * PLAYER_SPEED * delta, velocityY * delta);
 
-            // Проверка падения в бездну
             const surfaceY = terrainHeight(Math.floor(playerX / TILE_SIZE));
             if (playerY > (surfaceY + WORLD_BOTTOM + 5) * TILE_SIZE) {
                 const spawnX = Math.floor(playerX / TILE_SIZE);
@@ -1378,7 +1420,14 @@
             const held = inventory[selectedSlot];
             if (held && (held.isPickaxe || held.isSword)) {
                 const handX = facingRight ? px + PLAYER_SIZE : px - PLAYER_SIZE*0.3;
-                ctx.fillStyle = held.isSword ? "#cfd8dc" : "#8d6e63";
+                // Разный цвет для разных типов кирок
+                if (held.isPickaxe) {
+                    const colors = ["#8d6e63", "#888888", "#c0c0c0", "#4ff2f2", "#ffaa66"];
+                    const tier = held.pickaxeTier || 0;
+                    ctx.fillStyle = colors[tier] || "#8d6e63";
+                } else {
+                    ctx.fillStyle = held.isSword ? "#cfd8dc" : "#8d6e63";
+                }
                 ctx.fillRect(handX, py + PLAYER_SIZE*0.3, PLAYER_SIZE*0.3, PLAYER_SIZE*0.5);
             }
 
@@ -1393,6 +1442,11 @@
             let item = inventory[selectedSlot];
             let coordText = `📍 ${Math.floor(playerX/TILE_SIZE)}, ${Math.floor(playerY/TILE_SIZE)}`;
             let itemText = item ? `${item.name} x${item.count}` : "Пусто";
+            if (item && item.isPickaxe) {
+                const tierNames = ["Дерев.", "Камен.", "Желез.", "Алмаз.", "Пласт."];
+                const tier = item.pickaxeTier || 0;
+                itemText += ` (${tierNames[tier]})`;
+            }
             let timeText = sky.darkness > 0.5 ? "🌙" : (sky.darkness > 0.1 ? "🌆" : "☀️");
             document.getElementById('coordInfo').innerText = `${coordText} | ${itemText} | ${timeText}`;
         }
@@ -1424,6 +1478,11 @@
                     badge.className = 'tool-badge';
                     badge.innerText = '⛏';
                     div.appendChild(badge);
+                    let tierBadge = document.createElement('span');
+                    tierBadge.className = 'tool-tier';
+                    const tierNames = ["Дер", "Кам", "Жел", "Алм", "Плас"];
+                    tierBadge.innerText = tierNames[inventory[i].pickaxeTier || 0];
+                    div.appendChild(tierBadge);
                 } else if (inventory[i].isSword) {
                     let badge = document.createElement('span');
                     badge.className = 'tool-badge';

@@ -37,7 +37,7 @@
         }
         .hotbar {
             display: flex; gap: 6px; background: #2c2c2c; padding: 8px 12px;
-            border-radius: 12px; overflow-x: auto; max-width: 65%;
+            border-radius: 12px; overflow-x: auto; max-width: 45%;
         }
         .slot {
             width: 55px; height: 55px; background: #3a3a3a; border: 3px solid #5a5a5a;
@@ -64,6 +64,30 @@
             font-size: 12px; color: #e0e0e0; display: flex; gap: 12px; flex-wrap: wrap;
         }
         .controls-hint kbd { background: #2c2c2c; border-radius: 6px; padding: 2px 6px; color: #ffd966; }
+        .build-controls {
+            position: fixed; top: 90px; right: 20px; z-index: 150;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .build-btn {
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(4px);
+            border: 2px solid #6a6a6a; border-radius: 10px;
+            padding: 10px 16px; color: white; font-family: 'Minecraft Rus', monospace;
+            font-size: 13px; cursor: pointer; transition: all 0.2s;
+            text-align: left; min-width: 140px;
+        }
+        .build-btn:hover { background: rgba(50,50,50,0.9); border-color: #ffcc44; }
+        .build-btn .icon { margin-right: 8px; }
+        .build-btn.export { border-color: #44cc88; }
+        .build-btn.import { border-color: #4488cc; }
+        .build-btn.clear { border-color: #cc4444; }
+        .build-btn.export:hover { border-color: #66ffaa; }
+        .build-btn.import:hover { border-color: #66aaff; }
+        .build-btn.clear:hover { border-color: #ff6666; }
+        .build-btn.creative { border-color: #cc88ff; }
+        .build-btn.creative:hover { border-color: #dd99ff; }
+        .build-btn.creative.active { border-color: #ff44ff; background: rgba(80,0,80,0.6); }
+        .build-btn.dungeon { border-color: #ff8844; }
+        .build-btn.dungeon:hover { border-color: #ffaa66; }
         .crafting-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); z-index: 300;
@@ -131,19 +155,80 @@
             pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
         .save-indicator.show { opacity: 1; transform: translateY(0); }
+        .file-input-hidden { display: none; }
+        .build-status {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: #fff; padding: 10px 24px;
+            border-radius: 12px; font-family: 'Minecraft Rus', monospace;
+            font-size: 14px; z-index: 160; opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; text-align: center; border: 2px solid #6a6a6a;
+        }
+        .build-status.show { opacity: 1; }
+        .build-status.success { border-color: #44cc88; }
+        .build-status.error { border-color: #cc4444; }
+        .chest-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 300;
+            display: flex; align-items: center; justify-content: center; pointer-events: auto;
+        }
+        .chest-menu {
+            background: #2c2c2c; border: 4px solid #8b6b3b; border-radius: 16px;
+            padding: 20px; min-width: 400px; max-width: 90vw;
+            font-family: 'Minecraft Rus', monospace;
+        }
+        .chest-title {
+            color: #e0c896; font-size: 18px; text-align: center; margin-bottom: 15px;
+        }
+        .chest-grid {
+            display: grid; grid-template-columns: repeat(9, 50px);
+            grid-template-rows: repeat(3, 50px); gap: 6px;
+            background: #3a3a3a; padding: 12px; border-radius: 8px;
+            justify-content: center;
+        }
+        .chest-slot {
+            background: #1f1f1f; border: 2px solid #6a6a6a; border-radius: 4px;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; cursor: pointer; position: relative;
+            width: 50px; height: 50px;
+        }
+        .chest-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+        .chest-slot span { font-size: 10px; color: white; position: absolute; bottom: 2px; right: 4px; }
+        .chest-close {
+            margin-top: 12px; padding: 8px 20px; background: #5a5a5a; border: none;
+            color: white; font-family: inherit; cursor: pointer; border-radius: 8px; font-size: 14px;
+            display: block; margin-left: auto; margin-right: auto;
+        }
+        .chest-close:hover { background: #7a7a7a; }
         @media (max-width: 700px) {
             .slot { width: 45px; height: 45px; }
             .slot img { width: 28px; height: 28px; }
             .info { font-size: 12px; min-width: 200px; }
             .game-title { font-size: 24px; top: 12px; left: 15px; }
+            .build-controls { top: 80px; right: 10px; }
+            .build-btn { padding: 6px 12px; font-size: 11px; min-width: 100px; }
+            .chest-grid { grid-template-columns: repeat(9, 35px); grid-template-rows: repeat(3, 35px); }
+            .chest-slot { width: 35px; height: 35px; }
+            .chest-slot img { width: 24px; height: 24px; }
+            .chest-menu { min-width: auto; }
         }
-        @media (max-width: 500px) { .controls-hint { display: none; } .hotbar { max-width: 55%; } }
+        @media (max-width: 500px) { .controls-hint { display: none; } .hotbar { max-width: 35%; } }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div class="game-title">Weecraft<span class="version">v5.1 Pickaxe Tiers</span></div>
+<div class="game-title">Weecraft<span class="version">v6.1 Dungeons & Chests</span></div>
 <div class="save-indicator" id="saveIndicator">💾 Сохранено</div>
+
+<div class="build-controls">
+    <button class="build-btn creative" id="creativeBtn">🎨 Творческий режим</button>
+    <button class="build-btn dungeon" id="dungeonBtn">🏚️ Сгенерировать данж</button>
+    <button class="build-btn export" id="exportBtn">📤 Экспорт постройки</button>
+    <button class="build-btn import" id="importBtn">📥 Импорт постройки</button>
+    <button class="build-btn clear" id="clearBtn">🗑️ Очистить область</button>
+</div>
+
+<div class="build-status" id="buildStatus"></div>
+
 <div class="ui-panel">
     <div class="hotbar" id="hotbarContainer"></div>
     <div class="info" id="coordInfo">Загрузка...</div>
@@ -152,8 +237,12 @@
         <span><kbd>ПКМ</kbd> построить</span>
         <span><kbd>F</kbd> использовать</span>
         <span><kbd>E</kbd> инвентарь 2x2</span>
+        <span><kbd>B</kbd> выделить область</span>
+        <span><kbd>G</kbd> creative</span>
     </div>
 </div>
+
+<input type="file" id="fileInput" class="file-input-hidden" accept=".qwqeqeBILD">
 
 <script>
     (function(){
@@ -161,7 +250,7 @@
         const CHUNK_SIZE = 16;
         const VIEW_RADIUS = 3;
         const BUILD_DISTANCE = 5;
-        const SAVE_KEY = 'weecraft_save_v5_1';
+        const SAVE_KEY = 'weecraft_save_v6_1';
         const DAY_LENGTH = 480;
         const WORLD_BOTTOM = 127;
 
@@ -174,7 +263,8 @@
             GOLD_ORE: 15, REDSTONE_ORE: 16, EMERALD_ORE: 17, LAPIS_ORE: 18, QUARTZ_ORE: 19,
             NATURAL_GAS: 20, PLASTIC_MASS: 21,
             COAL_BLOCK: 22, IRON_BLOCK: 23, GOLD_BLOCK: 24, DIAMOND_BLOCK: 25,
-            REDSTONE_BLOCK: 26, EMERALD_BLOCK: 27, LAPIS_BLOCK: 28, QUARTZ_BLOCK: 29
+            REDSTONE_BLOCK: 26, EMERALD_BLOCK: 27, LAPIS_BLOCK: 28, QUARTZ_BLOCK: 29,
+            CHEST: 30
         };
 
         const BLOCK_NAMES = {
@@ -185,31 +275,22 @@
             18: "Лазуритовая руда", 19: "Кварцевая руда", 20: "Природный газ",
             21: "Пластиковая масса", 22: "Угольный блок", 23: "Железный блок",
             24: "Золотой блок", 25: "Алмазный блок", 26: "Редстоуновый блок",
-            27: "Изумрудный блок", 28: "Лазуритовый блок", 29: "Кварцевый блок"
+            27: "Изумрудный блок", 28: "Лазуритовый блок", 29: "Кварцевый блок",
+            30: "Сундук"
         };
 
-        // Уровни кирок: деревянная, каменная, железная, алмазная, пластиковая
-        const PICKAXE_TIERS = {
-            WOOD: { name: "Деревянная кирка", tier: 0, material: TYPES.WOOD },
-            STONE: { name: "Каменная кирка", tier: 1, material: TYPES.STONE },
-            IRON: { name: "Железная кирка", tier: 2, material: TYPES.IRON_ORE },
-            DIAMOND: { name: "Алмазная кирка", tier: 3, material: TYPES.DIAMOND_ORE },
-            PLASTIC: { name: "Пластиковая кирка", tier: 4, material: TYPES.PLASTIC_BLOCK }
-        };
-
-        // Какая руда каким уровнем кирки добывается
         const ORE_TIERS = {
-            [TYPES.COAL_ORE]: 0,        // деревянная
-            [TYPES.IRON_ORE]: 1,        // каменная
-            [TYPES.GOLD_ORE]: 1,        // каменная
-            [TYPES.LAPIS_ORE]: 1,       // каменная
-            [TYPES.REDSTONE_ORE]: 2,    // железная
-            [TYPES.DIAMOND_ORE]: 2,     // железная
-            [TYPES.EMERALD_ORE]: 2,     // железная
-            [TYPES.QUARTZ_ORE]: 2,      // железная
-            [TYPES.NATURAL_GAS]: 2,     // железная
-            [TYPES.STONE]: 0,           // деревянная
-            [TYPES.PLASTIC_BLOCK]: 3,   // алмазная
+            [TYPES.COAL_ORE]: 0,
+            [TYPES.IRON_ORE]: 1,
+            [TYPES.GOLD_ORE]: 1,
+            [TYPES.LAPIS_ORE]: 1,
+            [TYPES.REDSTONE_ORE]: 2,
+            [TYPES.DIAMOND_ORE]: 2,
+            [TYPES.EMERALD_ORE]: 2,
+            [TYPES.QUARTZ_ORE]: 2,
+            [TYPES.NATURAL_GAS]: 2,
+            [TYPES.STONE]: 0,
+            [TYPES.PLASTIC_BLOCK]: 3,
             [TYPES.COAL_BLOCK]: 0,
             [TYPES.IRON_BLOCK]: 1,
             [TYPES.GOLD_BLOCK]: 1,
@@ -251,7 +332,8 @@
             [TYPES.REDSTONE_BLOCK]: "texturs/redstone_block.png",
             [TYPES.EMERALD_BLOCK]: "texturs/emerald_block.png",
             [TYPES.LAPIS_BLOCK]: "texturs/lapis_block.png",
-            [TYPES.QUARTZ_BLOCK]: "texturs/quartz_block.png"
+            [TYPES.QUARTZ_BLOCK]: "texturs/quartz_block.png",
+            [TYPES.CHEST]: "texturs/chest.png"
         };
 
         const FALLBACK_COLORS = {
@@ -261,7 +343,43 @@
             15:"#ffd700", 16:"#ff3300", 17:"#50c878", 18:"#2144a0", 19:"#ffffff",
             20:"#66ccff", 21:"#88dd88", 22:"#333333", 23:"#cccccc",
             24:"#ffd700", 25:"#4ff2f2", 26:"#ff3300", 27:"#50c878",
-            28:"#2144a0", 29:"#ffffff"
+            28:"#2144a0", 29:"#ffffff", 30:"#8b6b3b"
+        };
+
+        // Данные данжа из файла
+        const DUNGEON_DATA = {
+            "width":14,"height":29,"offsetX":-9,"offsetY":13,
+            "blocks": [
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":9,"trapdoorOpen":false},{"type":9,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false}],
+                [{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":30,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":13,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}],
+                [{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":3,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false},{"type":0,"trapdoorOpen":false}]
+            ]
         };
 
         let textures = {};
@@ -293,6 +411,16 @@
         let gameTime = 0;
         let stars = [];
         let hasCraftedWorkbench = false;
+
+        let isCreative = false;
+        let creativeInventory = [];
+        let chestContents = new Map();
+
+        let selectionStart = null;
+        let selectionEnd = null;
+        let buildMode = false;
+
+        let dungeonPlaced = false;
 
         function hash(x, seed) {
             let h = (x * 374761393 + seed * 668265263) | 0;
@@ -550,7 +678,7 @@
         function saveGame() {
             const data = {
                 seed: SEED,
-                version: 4,
+                version: 6,
                 inventory: inventory,
                 playerX: playerX,
                 playerY: playerY,
@@ -558,7 +686,11 @@
                 trapdoorStates: Array.from(trapdoorStates.entries()),
                 modifiedBlocks: Array.from(modifiedBlocks.entries()),
                 gameTime: gameTime,
-                hasCraftedWorkbench: hasCraftedWorkbench
+                hasCraftedWorkbench: hasCraftedWorkbench,
+                chestContents: Array.from(chestContents.entries()),
+                isCreative: isCreative,
+                creativeInventory: creativeInventory,
+                dungeonPlaced: dungeonPlaced
             };
             try {
                 localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -583,6 +715,10 @@
                 modifiedBlocks = new Map(data.modifiedBlocks || []);
                 gameTime = data.gameTime ?? 0;
                 hasCraftedWorkbench = data.hasCraftedWorkbench ?? false;
+                chestContents = new Map(data.chestContents || []);
+                isCreative = data.isCreative ?? false;
+                creativeInventory = data.creativeInventory || [];
+                dungeonPlaced = data.dungeonPlaced ?? false;
 
                 if (selectedSlot >= inventory.length && inventory.length > 0) {
                     selectedSlot = 0;
@@ -602,7 +738,7 @@
             ind._hideTimer = setTimeout(() => ind.classList.remove('show'), 1500);
         }
 
-        function addToInventory(type, count, extra = {}) {
+        function addToInventory(type, count, extra = {}, keepSlot = false) {
             const name = extra.name || BLOCK_NAMES[type] || "Блок";
             let invItem = inventory.find(s =>
                 s.type === type &&
@@ -617,7 +753,9 @@
                 inventory.push(invItem);
             }
             invItem.count += count;
-            selectedSlot = inventory.indexOf(invItem);
+            if (!keepSlot) {
+                selectedSlot = inventory.indexOf(invItem);
+            }
             updateHotbarUI();
             return invItem;
         }
@@ -654,6 +792,9 @@
                 }
                 playerX = spawnX * TILE_SIZE;
                 playerY = (spawnY - 3) * TILE_SIZE;
+                
+                // Генерируем данж при первом запуске
+                generateDungeon(8, 45);
             } else {
                 const pcx = Math.floor((playerX / TILE_SIZE) / CHUNK_SIZE);
                 const pcy = Math.floor((playerY / TILE_SIZE) / CHUNK_SIZE);
@@ -662,10 +803,15 @@
                         ensureChunk(cx, cy);
                     }
                 }
+                // Если данж ещё не был сгенерирован
+                if (!dungeonPlaced) {
+                    generateDungeon(8, 45);
+                }
             }
 
             regenerateStars();
             updateChunks();
+            updateCreativeUI();
         }
 
         function regenerateStars() {
@@ -682,26 +828,214 @@
             }
         }
 
+        // ===================== ГЕНЕРАЦИЯ ДАНЖА =====================
+        function generateDungeon(startX, startY) {
+            try {
+                const data = DUNGEON_DATA;
+                let placed = 0;
+                
+                for (let row = 0; row < data.height; row++) {
+                    for (let col = 0; col < data.width; col++) {
+                        const blockData = data.blocks[row][col];
+                        if (blockData.type !== TYPES.AIR) {
+                            const worldX = startX + col;
+                            const worldY = startY + row;
+                            setBlock(worldX, worldY, blockData.type);
+                            if (blockData.type === TYPES.TRAPDOOR) {
+                                trapdoorStates.set(`${worldX},${worldY}`, blockData.trapdoorOpen || false);
+                            }
+                            placed++;
+                        }
+                    }
+                }
+                
+                dungeonPlaced = true;
+                showBuildStatus(`🏚️ Данж сгенерирован! (${placed} блоков)`, 'success');
+                saveGame();
+            } catch(e) {
+                showBuildStatus(`❌ Ошибка генерации данжа: ${e.message}`, 'error');
+            }
+        }
+
+        function generateDungeonAtPlayer() {
+            const px = Math.floor(playerX / TILE_SIZE);
+            const py = Math.floor(playerY / TILE_SIZE);
+            // Размещаем данж справа от игрока
+            const startX = px + 5;
+            const startY = py - 5;
+            generateDungeon(startX, startY);
+        }
+
+        // ===================== CREATIVE MODE =====================
+        function toggleCreative() {
+            isCreative = !isCreative;
+            if (isCreative) {
+                creativeInventory = [];
+                for (let type in BLOCK_NAMES) {
+                    if (type > 0) {
+                        creativeInventory.push({
+                            type: parseInt(type),
+                            count: 999,
+                            name: BLOCK_NAMES[type]
+                        });
+                    }
+                }
+                const pickaxeTypes = [
+                    { type: TYPES.WOOD, tier: 0, name: "Деревянная кирка" },
+                    { type: TYPES.STONE, tier: 1, name: "Каменная кирка" },
+                    { type: TYPES.IRON_ORE, tier: 2, name: "Железная кирка" },
+                    { type: TYPES.DIAMOND_ORE, tier: 3, name: "Алмазная кирка" },
+                    { type: TYPES.PLASTIC_BLOCK, tier: 4, name: "Пластиковая кирка" }
+                ];
+                for (const p of pickaxeTypes) {
+                    creativeInventory.push({
+                        type: p.type,
+                        count: 1,
+                        name: p.name,
+                        isPickaxe: true,
+                        pickaxeTier: p.tier
+                    });
+                }
+                creativeInventory.push({ type: TYPES.IRON_ORE, count: 1, name: "Меч", isSword: true });
+                creativeInventory.push({ type: TYPES.IRON_ORE, count: 1, name: "Огниво", isFlint: true });
+                
+                inventory = creativeInventory;
+                selectedSlot = 0;
+                showBuildStatus('🎨 Творческий режим ВКЛЮЧЕН! Все блоки доступны', 'success');
+                document.getElementById('creativeBtn').classList.add('active');
+                document.getElementById('creativeBtn').textContent = '🎨 Творческий (ВКЛ)';
+            } else {
+                inventory = [];
+                selectedSlot = 0;
+                showBuildStatus('🎨 Творческий режим ВЫКЛЮЧЕН', 'info');
+                document.getElementById('creativeBtn').classList.remove('active');
+                document.getElementById('creativeBtn').textContent = '🎨 Творческий режим';
+            }
+            updateHotbarUI();
+            saveGame();
+        }
+
+        function updateCreativeUI() {
+            const btn = document.getElementById('creativeBtn');
+            if (isCreative) {
+                btn.classList.add('active');
+                btn.textContent = '🎨 Творческий (ВКЛ)';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '🎨 Творческий режим';
+            }
+        }
+
+        // ===================== CHEST SYSTEM =====================
+        function getChestKey(x, y) { return `chest_${x}_${y}`; }
+
+        function openChest(x, y) {
+            const key = getChestKey(x, y);
+            if (!chestContents.has(key)) {
+                chestContents.set(key, Array(27).fill(null));
+            }
+            renderChestMenu(x, y);
+        }
+
+        function renderChestMenu(chestX, chestY) {
+            let existing = document.querySelector('.chest-overlay');
+            if (existing) existing.remove();
+
+            const key = getChestKey(chestX, chestY);
+            const contents = chestContents.get(key) || Array(27).fill(null);
+
+            let overlay = document.createElement('div');
+            overlay.className = 'chest-overlay';
+            let menu = document.createElement('div');
+            menu.className = 'chest-menu';
+
+            let title = document.createElement('div');
+            title.className = 'chest-title';
+            title.innerText = `📦 Сундук (${chestX}, ${chestY})`;
+            menu.appendChild(title);
+
+            let grid = document.createElement('div');
+            grid.className = 'chest-grid';
+
+            for (let i = 0; i < 27; i++) {
+                let slotDiv = document.createElement('div');
+                slotDiv.className = 'chest-slot';
+                let slotData = contents[i];
+                if (slotData) {
+                    let img = document.createElement('img');
+                    img.src = texturePaths[slotData.type] || texturePaths[TYPES.GRASS];
+                    let span = document.createElement('span');
+                    span.innerText = slotData.count;
+                    slotDiv.appendChild(img);
+                    slotDiv.appendChild(span);
+                } else {
+                    slotDiv.style.background = "#2a2a2a";
+                }
+
+                slotDiv.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (e.button === 0) {
+                        if (contents[i]) {
+                            const item = contents[i];
+                            addToInventory(item.type, 1, { name: BLOCK_NAMES[item.type] || "Блок" }, false);
+                            item.count--;
+                            if (item.count <= 0) {
+                                contents[i] = null;
+                            }
+                            chestContents.set(key, contents);
+                            renderChestMenu(chestX, chestY);
+                            saveGame();
+                        }
+                    } else if (e.button === 2) {
+                        const invItem = inventory[selectedSlot];
+                        if (invItem && invItem.count > 0 && !invItem.isPickaxe && !invItem.isSword && !invItem.isFlint) {
+                            if (!contents[i]) {
+                                contents[i] = { type: invItem.type, count: 1 };
+                                removeFromSlot(selectedSlot, 1);
+                            } else if (contents[i].type === invItem.type) {
+                                contents[i].count++;
+                                removeFromSlot(selectedSlot, 1);
+                            }
+                            chestContents.set(key, contents);
+                            renderChestMenu(chestX, chestY);
+                            saveGame();
+                        }
+                    }
+                });
+                grid.appendChild(slotDiv);
+            }
+
+            let closeBtn = document.createElement('button');
+            closeBtn.innerText = "Закрыть (Esc)";
+            closeBtn.className = 'chest-close';
+            closeBtn.onclick = () => {
+                document.querySelector('.chest-overlay')?.remove();
+            };
+
+            menu.appendChild(grid);
+            menu.appendChild(closeBtn);
+            overlay.appendChild(menu);
+            document.body.appendChild(overlay);
+        }
+
         // ===================== КРАФТ =====================
-        // Рецепты для верстака (3x3)
         const RECIPES_3X3 = [
             { name: "Верстак", type: TYPES.CRAFTING_TABLE, count: 1,
               pattern: [TYPES.PLANKS, TYPES.PLANKS, null, TYPES.PLANKS, TYPES.PLANKS, null, null, null, null] },
             { name: "Люк", type: TYPES.TRAPDOOR, count: 2,
               pattern: [null, null, null, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS] },
-            // Деревянная кирка
+            { name: "Сундук", type: TYPES.CHEST, count: 1,
+              pattern: [TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, null, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS, TYPES.PLANKS] },
             { name: "Деревянная кирка", type: TYPES.WOOD, count: 1, isPickaxe: true, pickaxeTier: 0,
               pattern: [TYPES.WOOD, TYPES.WOOD, TYPES.WOOD, null, TYPES.STICK, null, null, TYPES.STICK, null] },
-            // Каменная кирка
             { name: "Каменная кирка", type: TYPES.STONE, count: 1, isPickaxe: true, pickaxeTier: 1,
               pattern: [TYPES.STONE, TYPES.STONE, TYPES.STONE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
-            // Железная кирка
             { name: "Железная кирка", type: TYPES.IRON_ORE, count: 1, isPickaxe: true, pickaxeTier: 2,
               pattern: [TYPES.IRON_ORE, TYPES.IRON_ORE, TYPES.IRON_ORE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
-            // Алмазная кирка
             { name: "Алмазная кирка", type: TYPES.DIAMOND_ORE, count: 1, isPickaxe: true, pickaxeTier: 3,
               pattern: [TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, TYPES.DIAMOND_ORE, null, TYPES.STICK, null, null, TYPES.STICK, null] },
-            // Пластиковая кирка
             { name: "Пластиковая кирка", type: TYPES.PLASTIC_BLOCK, count: 1, isPickaxe: true, pickaxeTier: 4,
               pattern: [TYPES.PLASTIC_BLOCK, TYPES.PLASTIC_BLOCK, TYPES.PLASTIC_BLOCK, null, TYPES.STICK, null, null, TYPES.STICK, null] },
             { name: "Меч", type: TYPES.IRON_ORE, count: 1, isSword: true,
@@ -801,7 +1135,7 @@
                 isSword: recipe.isSword,
                 isFlint: recipe.isFlint,
                 pickaxeTier: recipe.pickaxeTier
-            });
+            }, false);
             craftingSlots = Array(9).fill(null);
             renderCraftingMenu();
             saveGame();
@@ -813,7 +1147,7 @@
                 if (recipe.type === TYPES.CRAFTING_TABLE) {
                     hasCraftedWorkbench = true;
                 }
-                addToInventory(recipe.type, recipe.count, { name: recipe.name });
+                addToInventory(recipe.type, recipe.count, { name: recipe.name }, false);
                 inventoryCraftingSlots = Array(4).fill(null);
                 renderInventoryMenu();
                 saveGame();
@@ -837,6 +1171,7 @@
         }
 
         function canBreakBlock(blockType, pickaxeTier) {
+            if (isCreative) return true;
             if (!REQUIRES_PICKAXE.has(blockType)) return true;
             const requiredTier = ORE_TIERS[blockType] ?? 0;
             return pickaxeTier >= requiredTier;
@@ -858,7 +1193,7 @@
                 return false;
             }
 
-            if (REQUIRES_PICKAXE.has(type)) {
+            if (REQUIRES_PICKAXE.has(type) && !isCreative) {
                 const held = inventory[selectedSlot];
                 const tier = getPickaxeTier(held);
                 if (tier < 0 || !canBreakBlock(type, tier)) {
@@ -868,8 +1203,11 @@
 
             setBlock(tx, ty, TYPES.AIR);
             trapdoorStates.delete(`${tx},${ty}`);
+            chestContents.delete(getChestKey(tx, ty));
 
-            addToInventory(type, 1);
+            if (!isCreative) {
+                addToInventory(type, 1, {}, true);
+            }
             return true;
         }
 
@@ -892,7 +1230,9 @@
                 && !item.isPickaxe && !item.isSword && !item.isFlint) {
                 setBlock(tx, ty, item.type);
                 if (item.type === TYPES.TRAPDOOR) setTrapdoorOpen(tx, ty, false);
-                removeFromSlot(selectedSlot, 1);
+                if (!isCreative) {
+                    removeFromSlot(selectedSlot, 1);
+                }
                 return true;
             }
             return false;
@@ -912,6 +1252,11 @@
 
             let blockType = getBlock(tx, ty);
 
+            if (blockType === TYPES.CHEST) {
+                openChest(tx, ty);
+                return;
+            }
+
             if (blockType === TYPES.CRAFTING_TABLE) {
                 openCraftingTable(tx, ty);
                 return;
@@ -924,13 +1269,18 @@
                         let nx = tx + dx, ny = ty + dy;
                         let bType = getBlock(nx, ny);
                         if (bType !== TYPES.AIR && bType !== TYPES.DYNAMITE) {
-                            addToInventory(bType, 1);
+                            if (!isCreative) {
+                                addToInventory(bType, 1, {}, true);
+                            }
                         }
                         setBlock(nx, ny, TYPES.AIR);
                         trapdoorStates.delete(`${nx},${ny}`);
+                        chestContents.delete(getChestKey(nx, ny));
                     }
                 }
-                removeFromSlot(selectedSlot, 1);
+                if (!isCreative) {
+                    removeFromSlot(selectedSlot, 1);
+                }
             }
         }
 
@@ -951,7 +1301,7 @@
             isInventoryOpen = false;
             for (let i = 0; i < 4; i++) {
                 if (inventoryCraftingSlots[i]) {
-                    addToInventory(inventoryCraftingSlots[i].type, inventoryCraftingSlots[i].count);
+                    addToInventory(inventoryCraftingSlots[i].type, inventoryCraftingSlots[i].count, {}, false);
                 }
             }
             inventoryCraftingSlots = Array(4).fill(null);
@@ -1036,7 +1386,7 @@
                         }
                     } else if (e.button === 2) {
                         if (inventoryCraftingSlots[i]) {
-                            addToInventory(inventoryCraftingSlots[i].type, inventoryCraftingSlots[i].count);
+                            addToInventory(inventoryCraftingSlots[i].type, inventoryCraftingSlots[i].count, {}, false);
                             inventoryCraftingSlots[i] = null;
                             renderInventoryMenu();
                         }
@@ -1096,7 +1446,7 @@
             isCraftingOpen = false;
             for (let i = 0; i < 9; i++) {
                 if (craftingSlots[i]) {
-                    addToInventory(craftingSlots[i].type, craftingSlots[i].count);
+                    addToInventory(craftingSlots[i].type, craftingSlots[i].count, {}, false);
                 }
             }
             craftingSlots = Array(9).fill(null);
@@ -1171,7 +1521,7 @@
                         }
                     } else if (e.button === 2) {
                         if (craftingSlots[i]) {
-                            addToInventory(craftingSlots[i].type, craftingSlots[i].count);
+                            addToInventory(craftingSlots[i].type, craftingSlots[i].count, {}, false);
                             craftingSlots[i] = null;
                             renderCraftingMenu();
                         }
@@ -1397,6 +1747,34 @@
                 }
             }
 
+            if (selectionStart && selectionEnd) {
+                const minX = Math.min(selectionStart.x, selectionEnd.x) * TILE_SIZE - cameraX;
+                const maxX = (Math.max(selectionStart.x, selectionEnd.x) + 1) * TILE_SIZE - cameraX;
+                const minY = Math.min(selectionStart.y, selectionEnd.y) * TILE_SIZE - cameraY;
+                const maxY = (Math.max(selectionStart.y, selectionEnd.y) + 1) * TILE_SIZE - cameraY;
+
+                ctx.fillStyle = 'rgba(255, 255, 100, 0.15)';
+                ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+                ctx.strokeStyle = '#ffcc44';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 6]);
+                ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#ffcc44';
+                ctx.font = '12px Minecraft Rus, monospace';
+                ctx.fillText(`(${Math.min(selectionStart.x, selectionEnd.x)}, ${Math.min(selectionStart.y, selectionEnd.y)})`, minX + 4, minY + 16);
+                ctx.fillText(`(${Math.max(selectionStart.x, selectionEnd.x)}, ${Math.max(selectionStart.y, selectionEnd.y)})`, maxX - 80, maxY - 6);
+                
+                const w = Math.abs(selectionEnd.x - selectionStart.x) + 1;
+                const h = Math.abs(selectionEnd.y - selectionStart.y) + 1;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '13px Minecraft Rus, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${w}×${h}`, (minX + maxX) / 2, minY - 10);
+                ctx.textAlign = 'left';
+            }
+
             if (sky.darkness > 0) {
                 ctx.fillStyle = `rgba(10, 12, 35, ${sky.darkness * 0.55})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1420,7 +1798,6 @@
             const held = inventory[selectedSlot];
             if (held && (held.isPickaxe || held.isSword)) {
                 const handX = facingRight ? px + PLAYER_SIZE : px - PLAYER_SIZE*0.3;
-                // Разный цвет для разных типов кирок
                 if (held.isPickaxe) {
                     const colors = ["#8d6e63", "#888888", "#c0c0c0", "#4ff2f2", "#ffaa66"];
                     const tier = held.pickaxeTier || 0;
@@ -1448,7 +1825,9 @@
                 itemText += ` (${tierNames[tier]})`;
             }
             let timeText = sky.darkness > 0.5 ? "🌙" : (sky.darkness > 0.1 ? "🌆" : "☀️");
-            document.getElementById('coordInfo').innerText = `${coordText} | ${itemText} | ${timeText}`;
+            let buildText = buildMode ? " 🏗️" : "";
+            let creativeText = isCreative ? " 🎨" : "";
+            document.getElementById('coordInfo').innerText = `${coordText} | ${itemText} | ${timeText}${buildText}${creativeText}`;
         }
 
         function updateHotbarUI() {
@@ -1460,11 +1839,11 @@
                 empty.style.color = '#888';
                 empty.style.padding = '10px';
                 empty.style.fontSize = '13px';
-                empty.innerText = 'Инвентарь пуст — сломайте блок (ЛКМ)';
+                empty.innerText = isCreative ? '🎨 Творческий режим — все блоки доступны' : 'Инвентарь пуст — сломайте блок (ЛКМ)';
                 container.appendChild(empty);
                 return;
             }
-            for (let i = 0; i < inventory.length; i++) {
+            for (let i = 0; i < Math.min(inventory.length, 9); i++) {
                 let div = document.createElement('div');
                 div.className = `slot ${selectedSlot === i ? 'selected' : ''}`;
                 let img = document.createElement('img');
@@ -1497,6 +1876,174 @@
                 div.onclick = () => { selectedSlot = i; updateHotbarUI(); };
                 container.appendChild(div);
             }
+            if (inventory.length > 9) {
+                let more = document.createElement('div');
+                more.style.color = '#888';
+                more.style.padding = '10px';
+                more.style.fontSize = '11px';
+                more.innerText = `+${inventory.length - 9}`;
+                container.appendChild(more);
+            }
+        }
+
+        function getBlockInArea(x1, y1, x2, y2) {
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+            
+            const blocks = [];
+            for (let y = minY; y <= maxY; y++) {
+                const row = [];
+                for (let x = minX; x <= maxX; x++) {
+                    const blockType = getBlock(x, y);
+                    const isTrapdoorOpen = trapdoorStates.get(`${x},${y}`) === true;
+                    row.push({
+                        type: blockType,
+                        trapdoorOpen: isTrapdoorOpen
+                    });
+                }
+                blocks.push(row);
+            }
+            return {
+                width: maxX - minX + 1,
+                height: maxY - minY + 1,
+                offsetX: minX,
+                offsetY: minY,
+                blocks: blocks
+            };
+        }
+
+        function exportBuild() {
+            if (!selectionStart || !selectionEnd) {
+                showBuildStatus('❌ Сначала выделите область (нажмите B и выделите два угла)', 'error');
+                return;
+            }
+
+            const data = getBlockInArea(
+                selectionStart.x, selectionStart.y,
+                selectionEnd.x, selectionEnd.y
+            );
+
+            let hasBlocks = false;
+            for (const row of data.blocks) {
+                for (const block of row) {
+                    if (block.type !== TYPES.AIR) {
+                        hasBlocks = true;
+                        break;
+                    }
+                }
+                if (hasBlocks) break;
+            }
+
+            if (!hasBlocks) {
+                showBuildStatus('❌ В выделенной области нет блоков для экспорта', 'error');
+                return;
+            }
+
+            const jsonData = JSON.stringify(data);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `build_${Date.now()}.qwqeqeBILD`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showBuildStatus(`✅ Постройка экспортирована! (${data.width}x${data.height})`, 'success');
+            selectionStart = null;
+            selectionEnd = null;
+            buildMode = false;
+        }
+
+        function importBuild(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.blocks || !data.width || !data.height) {
+                        throw new Error('Неверный формат файла');
+                    }
+
+                    if (!selectionStart) {
+                        showBuildStatus('❌ Нажмите B, чтобы выбрать место для вставки (верхний левый угол)', 'error');
+                        return;
+                    }
+
+                    const startX = selectionStart.x;
+                    const startY = selectionStart.y;
+
+                    let placed = 0;
+                    for (let row = 0; row < data.height; row++) {
+                        for (let col = 0; col < data.width; col++) {
+                            const blockData = data.blocks[row][col];
+                            if (blockData.type !== TYPES.AIR) {
+                                const worldX = startX + col;
+                                const worldY = startY + row;
+                                setBlock(worldX, worldY, blockData.type);
+                                if (blockData.type === TYPES.TRAPDOOR) {
+                                    trapdoorStates.set(`${worldX},${worldY}`, blockData.trapdoorOpen || false);
+                                }
+                                placed++;
+                            }
+                        }
+                    }
+
+                    showBuildStatus(`✅ Постройка импортирована! (${placed} блоков)`, 'success');
+                    selectionStart = null;
+                    selectionEnd = null;
+                    buildMode = false;
+                    saveGame();
+                } catch(err) {
+                    showBuildStatus(`❌ Ошибка импорта: ${err.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearArea() {
+            if (!selectionStart || !selectionEnd) {
+                showBuildStatus('❌ Сначала выделите область (нажмите B и выделите два угла)', 'error');
+                return;
+            }
+
+            const minX = Math.min(selectionStart.x, selectionEnd.x);
+            const maxX = Math.max(selectionStart.x, selectionEnd.x);
+            const minY = Math.min(selectionStart.y, selectionEnd.y);
+            const maxY = Math.max(selectionStart.y, selectionEnd.y);
+
+            let cleared = 0;
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    const type = getBlock(x, y);
+                    if (type !== TYPES.AIR) {
+                        setBlock(x, y, TYPES.AIR);
+                        trapdoorStates.delete(`${x},${y}`);
+                        chestContents.delete(getChestKey(x, y));
+                        cleared++;
+                    }
+                }
+            }
+
+            showBuildStatus(`🗑️ Очищено ${cleared} блоков`, 'success');
+            selectionStart = null;
+            selectionEnd = null;
+            buildMode = false;
+            saveGame();
+        }
+
+        function showBuildStatus(message, type = 'info') {
+            const el = document.getElementById('buildStatus');
+            el.textContent = message;
+            el.className = 'build-status show ' + type;
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => {
+                el.className = 'build-status';
+            }, 3000);
         }
 
         let loaded = 0, total = Object.keys(texturePaths).length;
@@ -1523,6 +2070,20 @@
             resize();
             window.addEventListener('resize', resize);
 
+            document.getElementById('creativeBtn').addEventListener('click', toggleCreative);
+            document.getElementById('dungeonBtn').addEventListener('click', generateDungeonAtPlayer);
+            document.getElementById('exportBtn').addEventListener('click', exportBuild);
+            document.getElementById('importBtn').addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+            document.getElementById('clearBtn').addEventListener('click', clearArea);
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    importBuild(this.files[0]);
+                    this.value = '';
+                }
+            });
+
             canvas.addEventListener('mousemove', (e) => {
                 let rect = canvas.getBoundingClientRect();
                 lastMouseCanvas = { x: (e.clientX - rect.left) * (canvas.width/rect.width), y: (e.clientY - rect.top) * (canvas.height/rect.height) };
@@ -1533,6 +2094,32 @@
                 if (isCraftingOpen || isInventoryOpen) return;
                 let wx = lastMouseCanvas.x + cameraX;
                 let wy = lastMouseCanvas.y + cameraY;
+                let tx = Math.floor(wx / TILE_SIZE);
+                let ty = Math.floor(wy / TILE_SIZE);
+
+                if (buildMode) {
+                    if (e.button === 0) {
+                        if (!selectionStart) {
+                            selectionStart = { x: tx, y: ty };
+                            selectionEnd = { x: tx, y: ty };
+                            showBuildStatus(`🔲 Первый угол: (${tx}, ${ty})`, 'info');
+                        } else {
+                            selectionEnd = { x: tx, y: ty };
+                            showBuildStatus(`🔲 Область выделена: (${Math.abs(selectionEnd.x - selectionStart.x) + 1}×${Math.abs(selectionEnd.y - selectionStart.y) + 1})`, 'success');
+                            buildMode = false;
+                            updateHotbarUI();
+                        }
+                        return;
+                    }
+                    if (e.button === 2) {
+                        selectionStart = null;
+                        selectionEnd = null;
+                        buildMode = false;
+                        showBuildStatus('❌ Выделение отменено', 'error');
+                        updateHotbarUI();
+                        return;
+                    }
+                }
 
                 if (e.button === 0) {
                     breakBlockAt(wx, wy);
@@ -1560,6 +2147,26 @@
                     e.preventDefault();
                     toggleInventory();
                 }
+                if (e.code === 'KeyB') {
+                    e.preventDefault();
+                    buildMode = !buildMode;
+                    if (!buildMode) {
+                        selectionStart = null;
+                        selectionEnd = null;
+                        showBuildStatus('❌ Режим выделения отключен', 'error');
+                    } else {
+                        showBuildStatus('🏗️ Режим выделения: кликните ЛКМ по двум углам области', 'info');
+                    }
+                    updateHotbarUI();
+                }
+                if (e.code === 'KeyG') {
+                    e.preventDefault();
+                    toggleCreative();
+                }
+                if (e.code === 'KeyD') {
+                    e.preventDefault();
+                    generateDungeonAtPlayer();
+                }
                 if (e.code >= 'Digit1' && e.code <= 'Digit9') {
                     let num = parseInt(e.code.slice(5)) - 1;
                     if (num < inventory.length) {
@@ -1571,6 +2178,16 @@
                 if (e.code === 'Escape') {
                     if (isCraftingOpen) closeCrafting();
                     else if (isInventoryOpen) closeInventory();
+                    else if (document.querySelector('.chest-overlay')) {
+                        document.querySelector('.chest-overlay')?.remove();
+                    }
+                    else if (buildMode) {
+                        buildMode = false;
+                        selectionStart = null;
+                        selectionEnd = null;
+                        showBuildStatus('❌ Режим выделения отключен', 'error');
+                        updateHotbarUI();
+                    }
                 }
             });
             window.addEventListener('keyup', (e) => keys[e.code] = false);
